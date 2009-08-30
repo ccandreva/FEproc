@@ -1,0 +1,34 @@
+FEproc changelog
+----------------
+
+0.3.5 - 29. July 2004
+---------------------
+* Fixed fieldareaset handler (sorry) so it actually got the correct field
+  values. all tests (identical etc. now work :)
+* Changed some translations from Fetax to FeProc :)
++ Added a fileexists handler, which checks for a local file existing.
+  It may not be too secure - so use with caution!
+
+0.3.4 - 29. July 2003
+--------------------
+First release from Klavs Klavsen, the new maintainer.
+- Changed all occurences of old version numbers to the correct one and other
+small cleanups.
+- Changed the Validate formarea handler to use the form
+  {array:field} instead of just field and presuming the field is in the
+  attributes array. This means you can now validate directly on fields from the
+  Form's (f.ex.) - instead of having to create stages that copies the values
+  needed to the attribute array.
+- added a validate function called checkdomain, that does a whois lookup on
+  com,net,org,info,biz and dk domains and tells you if they are available or
+  taken.
+  NB. This depends on phpwhois, which I have not included in the package (yet
+  atleast).
+
+0.3.3 - unknown date
+--------------------
+Last release from Jason Judge
+
+0.1 - December 2002
+-------------------
+First alpha release for feedback.

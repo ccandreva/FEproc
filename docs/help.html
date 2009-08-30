@@ -1,0 +1,147 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Language" content="en">
+<meta name="GENERATOR" content="Dreamweaver MX">
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>FEproc</title>
+<style type="text/css">
+<!--
+body {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+-->
+</style>
+</head>
+
+<body>
+<p align="center"><b><font size="7">FEproc</font></b><br>
+PostNuke FormExpress Process Handler</p>
+<p align="center">Version 0.3.4 (alpha)</p>
+<p align="center">Copyright 2002 Jason Judge (Academe Computing) <a href="mailto:jason.judge@academe.co.uk">
+jason.judge@academe.co.uk</a><br>Module is now maintained by Klavs Klavsen <a
+href="mailto:kl-feproc@vsen.dk">kl-feproc@vsen.dk</a></p>
+<p>The FEproc (FormExpress Processing) module is a generic backend for the FormExpress module (by 
+Philip Fletcher -
+<a href="http://www.stutchbury.net/modules.php?op=modload&name=Downloads&file=index&req=viewsdownload&sid=1">
+http://www.stutchbury.net</a>). FormExpress handles creation and editing of 
+online formulars and may use &quot;plug-and-play&quot; backends to transfer the submited 
+data. FEproc was developed to meet a specific need to process the form data, but has been designed very generically so that it can be used in any number of applications.</p>
+<p>First some features, in no particular order. Read on if these are the kind of features you need:-</p>
+<ul>
+  <li>Developed for PostNuke .720. Should work on later versions.</li>
+  <li>Multiple forms can be strung together to form multi-page data entry.</li>
+  <li>Processing is organised into 'sets' each with one or more 'stages'.</li>
+  <li>A full pipeline set can be created through the admin screens with no coding.</li>
+  <li>Each stage is a processed by a handler that performs some action, such as raising a new form, displaying a page of information or sending an e-mail.</li>
+  <li>Any number of stages may be chained together in a pipeline.</li>
+  <li>Any stage may complete with a success or failure status. The next stage to process is determined by this status.</li>
+  <li>Handlers are supplied by API functions. New handlers may be written and imported without changing core module code.</li>
+  <li>A rich set of standard handlers allows many useful pipelines without writing new handlers.</li>
+  <li>All parameters passed into any handler are templated. Substitution values can come from a variety of sources, including entered form values, other parameters and system parameters.</li>
+</ul>
+<p>TODO: There is still much to do, some of which I intend to do and some of which I will leave to others. Let me know if you wish to do any development and I will ensure work is not duplicated.</p>
+<ul>
+  <li>Copy item values between forms so forms can share entered values. This will support a common set of form values that can be displayed consistently across a sequence of forms. This will also allow back-end stages to set initial values for forms so that, for example, a form could be initialised with the user's name or e-mail address.</li>
+  <li>Lots of validation on both the admin screens and the user screens.</li>
+  <li>Validation for the handler attributes.</li>
+  <li>More system type substitution variables (e-mail, login ID, full name, e-mail, current date, current time etc.)</li>
+  <li>Better support for Windows.</li>
+  <li>Better support for importing new and updated handlers: use the version number to determine if there is any data that should be updated or new attributes that should be defaulted.</li>
+  <li>Convert the module for Xaraya. This will be very much a rewrite from scratch, using experience gained from this version.</li>
+  <li>Multi-language support. At present there are English words and phrases hard-coded all over the place. The ML capabilities of PN are so cumbersome, I simply did not want it to get in the way of development. I am unlikely to correct this, but it is going to have to be thought out properly before Xaraya conversion. The ML is not just in the admin screens, but in the data too. One way to handle this would be to allow sets to be referenced by name and where more than one set shares the same name, choose the one that matches the current language setting.</li>
+  <li>Tidy up the admin screens - make them more intuitive to use.</li>
+  <li>Provide the means to import and export pipeline sets.</li>
+  <li>Provide support for custom non-FE forms.</li>
+  <li>Flesh out the documentation - there is a lot to document. Some pictures would go a long way to explaining the concepts.</li>
+  <li>Provide a module configuration screen to set global parameters for trimming the behaviour of the module. I don't want to assume anything in the way I am using the module is suitable for all other people, so I would like as much configurable as possible, from the number of records shown in a set to the method of handling errors.</li>
+  <li>Provide better error handling if FormExpress is not installed.</li>
+</ul>
+<h2>Administration Concepts</h2>
+<p>The first time the module is used, the standard handlers from the FEproc module should be imported. Do this from the 'import handlers' screen. Once the handlers are imported, you can start by creating a pipeline set.</p>
+<p>A set consists of many stages chained together in a pipeline. Each stage completes with a success or a failure status, and this determines which stage is processed next. Each set has one starting stage and it will complete after processing a stage with no success or failure stage. Stages come in two main groups: user stages and back-end stages. The user stages present the user with some action to take before the next stage is executed. A backend stage does not need to wait for user input. There are x types of handler that process these stages. The user stage types are:</p>
+<ul>
+  <li>FormExpress - user stage to execute a FormExpress form and send the results back to FEproc.</li>
+  <li>Form - user stage to display a non-FE form (not yet supported).</li>
+  <li>Display - user stage to display information to the user. Links from the display page take the user to the next stage. A typical use for a display stage could be to present the user with a confirmation screen before accepting details and to present the user with a final confirmation screen with details of the transaction. Other display stages allow variables and data to be dumped to the screen to aid debugging.</li>
+  <li>Redirect - user stage to jump to a different URL. This could allow a page from some other module to be inserted into a set pipeline, and providing a link from that page returns back to the correct next stage, the set can continue from where it jumped out.</li>
+  <li>Transform - backend stage to modify the data collected so far in some way. Examples would be PGP encrypting data or hashing out digits in a credit card number before sending it via e-mail for confirmation.</li>
+  <li>Transmit - backend stage to store or transmit in some way the data collected so far. This could include sending data via an e-mail or storing it in the database or in a file.</li>
+  <li>Validate - backend stage to validate data in some way. This could include checking all required forms have been completed or values are within valid ranges.</li>
+</ul>
+<p>With the exception of the FormExpress and Redirect stages, each stage is served by a handler. A handler is a function that has been written to perform the detailed processing of that stage. There are a number of handlers already included with this module, and they should be seen as the basic building blocks of the set pipelines.</p>
+<h2>Handlers</h2>
+<p>You may write your own handlers to perform special jobs or you may use the standard handlers included with this module. The standard handlers should provide the means to do most operations you may want to do.</p>
+<p>All handlers share a standard set of parameters and also have one or more custom parameters specific to that handler. The common parameters are: name, description, next stages (success and failure) and - for user handlers - whether the user screen should be presented in a secure SSL session or not.</p>
+<p>The custom parameters are known as 'attributes' for the handler. These attributes may be set to define the bahaviour of the stage using that handler. Attributes may include an e-mail address for an e-mail Transmit handler, or template text for a screen display handler. Substitution variables can be used in any attribute - and it is this that helps to make the stages most versatile.</p>
+<h2>Substitution Variables</h2>
+<p>A substitution variable  can be used in any stage attribute. A substitution variable takes the following form:</p>
+<blockquote>
+  <p>${area:name}</p>
+</blockquote>
+<p>The 'area' is any one of the following:</p>
+<ul>
+  <li>form - the name refers to any form item that has been entered on a form so far. The value of the form item will be substituted in place of this SV.</li>
+  <li>attribute - the value of any named attribute from the current stage. This allows attributes to reference each other so, for example, the 'reply-to' attribute value for an e-mail is the same as the 'from' attribute.</li>
+  <li>system - this provides a number of miscellaneous values such as the set ID, stage ID, unique transaction number and site name.</li>
+  <li>link - for display templates, these provide the URLs for the next stages and a URL to restart the set from the beginning after clearing out all entered values so far.</li>
+  <li>message - a message that has been generated by a previous stage. The message could be a validation error from a validation stage or a system error from a transmit stage. Any handler can return a message to the message collection which can be used by subsequent stages to display or transmit.</li>
+</ul>
+<p><strong>Examples</strong></p>
+<p>${attribute:fromaddress} - returns the value of the attribute 'fromaddress' in the same stage. This could be useful in the 'reply-to' attribute of an e-mail handler or even in the body of an e-mail.</p>
+<p>${system:transaction} - returns the unique transaction ID given to each set session. This can be used in any number of places - confirmation screens, e-mails etc. to tie together different parts of the transactiuon.</p>
+<p>${link:successurl} - returns the URL to the 'success' stage. This could be used in a confirmation screen like this:-</p>
+<blockquote>
+  <p>&lt;a href=&quot;${link:successurl}&quot;&gt;Click here to confirm your order&lt;/a&gt;</p>
+</blockquote>
+<p>${form:fullname} - returns the value of the 'fullname' field entered on a form. This could be used in an e-mail stage in the body of the e-mail:</p>
+<blockquote>
+  <p>Dear ${form:fullname},</p>
+  <p>Thankyou for your order number ${system:transaction} ...</p>
+</blockquote>
+<p>${message:pgperror} - this returns the message 'pgperror'. A transform stage may attempt to perform encryption on user-entered data. If it fails for some reason then the stage would write the reason to the message named 'pgperror'. This can then be displayed to the user or silently e-mailed to the administrator by a back-end e-mail stage before taking the user on to a more generic 'sorry an error occurred' display stage. The possibilities are endless.</p>
+<p>One of the standard display handlers provided displays a dump of all the current substitution variables. While debugging, you can use that handler in a stage between two stages you are having problems with to see exactly what the state of these variables are.</p>
+<h2>Linking-In FormExpress</h2>
+<p>This module has been tested against FE 0.3.0. It should work with later versions provided the FE session objects have not changed. There is not customisation required within FE and this module does not make any calls to FE functions, apart from the FE session object which holds entered form values.</p>
+<p>The following actions are required in the forms you want to use in a FEproc set:</p>
+<blockquote>
+  <p>Submit action: {FEproc:formexpress&amp;action='submit'}</p>
+  <p>Success action: {FEproc:formexpress&amp;action='success'}</p>
+  <p>Failure action: {FEproc:formexpress&amp;action='failure'}</p>
+</blockquote>
+<p>A form can start a set, so to run through a set pipeline, just call up the starting form. Alternatively call up the required set direct from FEproc.</p>
+<h2>URLs For Invoking This Module</h2>
+<p>There are a number of URLs used to call up sets and stages in this module.</p>
+<p>To invoke a set from a standard menu block the following is entered into the menu, where &lt;setid&gt; is the ID of set you want to run. This will reset any current forms and sets that are running in the session and start from the beginning.</p>
+<blockquote>
+  <p>{FEproc:process&amp;setid=&lt;setid&gt;}</p>
+  <p>index.php?module=FEproc&amp;func=process&amp;setid=&lt;setid&gt;</p>
+</blockquote>
+<p>To jump to a specific stage in the set, use the related menu option below. If the set is already running in the current session, the user will jump to that stage. If the set is not running, or another set is running, then the current set session is closed (form items are flushed from the session cache). If the set is not already running, and the stage is not the starting stage of the set, then an error will be raised.</p>
+<blockquote>
+  <p>{FEproc:process&amp;stageid=&lt;stageid&gt;}</p>
+  <p>index.php?module=FEproc&amp;func=process&amp;stageid=&lt;stageid&gt;</p>
+</blockquote>
+<h2>Putting It All Together</h2>
+<p>To run a very simple set - to get you started - follow these steps through the administration screens:</p>
+<ol>
+  <li>If not already done so, install FEproc and import all the standard handlers.</li>
+  <li>Create a sample FormExpress form. Set the actions for the form as described above.</li>
+  <li>Create a new set - call it 'sample set'.</li>
+  <li>Create a stage in the set of type 'formexpress' and name it 'Start'. Set the form ID of the stage to the ID of your sample form.</li>
+  <li>Create a second stage of type 'display' and name it 'Dump'. Select the 'dump' handler for the stage - leave all the parameters as they are for now.</li>
+  <li>Create a third stage of type 'display' and name it 'Final'. Select the 'display text' handler for the stage. Put this text in the 'template' parameter: Thankyou for transaction ${system:transaction}</li>
+  <li>Go back to the first stage: set the success and failure stages to the 'Dump' stage.</li>
+  <li>Go back to the second stage: set the success stage to 'Final' and the failure stage to 'Start'.</li>
+  <li>Now run the set from the 'show sets' screen. You can enter details in the form. Submitting the form will produce a dump of the data you have entered. On this screen will be two links: success and failure. Click on 'failure' to go back and change data on the form. Click on 'success' to complete the transaction.</li>
+</ol>
+<p>This is a very simple example. Once you see how it works you can try playing with it to change what is displayed and how it interacts with the user. You must remember that a set should end on a 'display' stage with no next stages (either success or failure). The set can start with any stage.</p>
+<h2>Other Notes</h2>
+<p>This module is complete functionaly, but still lacks a lot of validation and security checking. It also needs better error handling. Use on a live site with caution (preferably only on test sites at this stage). Please report all faults and fixes either direct to myself or through the PN forums (but send me a note, so I am aware).</p>
+<p>&nbsp;</p>
+<h2>Other Credits</h2>
+<p>Inspiration for this module was provided by Jørn Lind-Nielsen <a href="mailto:jln@fjeldgruppen.dk">
+jln@fjeldgruppen.dk</a> in the form of Fetax. This module was originally based on Fetax, but has since grown to be a versatile and extensible form handler that extends its capabilities far beyond simple mail templates. No Fetax code remains in this module, hence the name change. For anyone wanting just a simple means for mailing the results of a FormExpress form, then Fetax may suite your needs.</p>
+</body>
+
+</html>
