@@ -132,7 +132,7 @@ function feproc_handleradmin_view()
     $output->Pager($startnum,
                     pnModAPIFunc('feproc', 'handleruser', 'counthandlers'),
                     pnModURL('feproc',
-                             'handleruser',
+                             'handleradmin',
                              'view',
                             array('startnum' => '%%')),
                     10 /* FIXME pnModGetVar('FEproc', 'itemsperpage')*/);
