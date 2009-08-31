@@ -1034,7 +1034,7 @@ function feproc_userapi_handlerdata($args)
         {
             foreach ($handlerinfo['form'] as $itemName => $itemValue)
             {
-                $attrValue = preg_replace("'\\\$\\\{form:$itemName\\}'i", $itemValue, $attrValue);
+                $attrValue = preg_replace("/\\\${form:$itemName}/i", $itemValue, $attrValue);
             }
         }
 
@@ -1043,7 +1043,7 @@ function feproc_userapi_handlerdata($args)
         {
             foreach ($handlerinfo['system'] as $itemName => $itemValue)
             {
-                $attrValue = preg_replace("'\\\$\\\{system:$itemName\\}'i", $itemValue, $attrValue);
+                $attrValue = preg_replace("/\\\${system:$itemName}/i", $itemValue, $attrValue);
             }
         }
 
@@ -1052,7 +1052,7 @@ function feproc_userapi_handlerdata($args)
         {
             foreach ($handlerinfo['links'] as $itemName => $itemValue)
             {
-                $attrValue = preg_replace("'\\\$\\\{link:$itemName\\}'i", $itemValue, $attrValue);
+                $attrValue = preg_replace("/\\\${link:$itemName}/i", $itemValue, $attrValue);
             }
         }
 
@@ -1061,7 +1061,7 @@ function feproc_userapi_handlerdata($args)
         {
             foreach ($handlerinfo['messages'] as $itemName => $itemValue)
             {
-                $attrValue = preg_replace("'\\\$\\\{message:$itemName\\}'i", $itemValue, $attrValue);
+                $attrValue = preg_replace("/\\\${message:$itemName}/i", $itemValue, $attrValue);
             }
         }
 
@@ -1081,7 +1081,7 @@ function feproc_userapi_handlerdata($args)
                 // Suppress self-referencing loops.
                 if ($attrName != $itemName)
                 {
-                    $attrValue = preg_replace("'\\\$\\\{attribute:$itemName\\}'i", $itemValue, $attrValue);
+                    $attrValue = preg_replace("/\\\${attribute:$itemName}/i", $itemValue, $attrValue);
 
                     if ($removeunmatched)
                     {
