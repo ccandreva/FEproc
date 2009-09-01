@@ -226,9 +226,8 @@ function feproc_user_formexpress($args)
         foreach($formcache['items'] as $item)
         {
             $itemName = $item['item_name'];
-			// Remove any substitution variables the user may have entered.
-            $itemValue = preg_replace('/\${.+:.+}/', '', $formdata[$itemName]);
-
+            // Remove any substitution variables the user may have entered.
+            $itemValue = preg_replace('/\${[^:]+:[^}]+}/', '*REMOVED*', $formdata[$itemName]);
             // Ignore some special FormExpress items.
             if ($itemName <> 'BoilerPlate' && $itemName <> 'GroupStart' && $itemName <> 'GroupEnd')
             {

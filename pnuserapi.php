@@ -1029,46 +1029,21 @@ function feproc_userapi_handlerdata($args)
     // Loop for each attribute that may need changing.
     foreach ($handlerinfo['attributes'] as $attrName => $attrValue)
     {
-        // Do string replacements from the form data.
-        if (is_array($handlerinfo['form']))
+      foreach (array('form', 'system', 'links', 'messages') as $type) {
+        // Do string replacements from the various data types.
+        if (is_array($handlerinfo[$type]))
         {
-            foreach ($handlerinfo['form'] as $itemName => $itemValue)
+            foreach ($handlerinfo[$type] as $itemName => $itemValue)
             {
-                $attrValue = preg_replace("/\\\${form:$itemName}/i", $itemValue, $attrValue);
+                $attrValue = str_ireplace('${' . $type . ':' . $itemName. '}', $itemValue, $attrValue);
             }
         }
+      }
 
-        // Do string replacements from the system data.
-        if (is_array($handlerinfo['system']))
-        {
-            foreach ($handlerinfo['system'] as $itemName => $itemValue)
-            {
-                $attrValue = preg_replace("/\\\${system:$itemName}/i", $itemValue, $attrValue);
-            }
-        }
+      $handlerinfo['attributes'][$attrName] = $attrValue;
+    }    // foreach ($handlerinfo['attributes'] as $attrName => $attrValue)
 
-        // Do string replacements from the links data.
-        if (is_array($handlerinfo['links']))
-        {
-            foreach ($handlerinfo['links'] as $itemName => $itemValue)
-            {
-                $attrValue = preg_replace("/\\\${link:$itemName}/i", $itemValue, $attrValue);
-            }
-        }
-
-        // Do string replacements from the messages.
-        if (is_array($handlerinfo['messages']))
-        {
-            foreach ($handlerinfo['messages'] as $itemName => $itemValue)
-            {
-                $attrValue = preg_replace("/\\\${message:$itemName}/i", $itemValue, $attrValue);
-            }
-        }
-
-        $handlerinfo['attributes'][$attrName] = $attrValue;
-    }
-
-	$removeunmatched = pnModGetVar('FEproc', 'removeunmatched');
+    $removeunmatched = pnModGetVar('FEproc', 'removeunmatched');
 
     // Now do the same between the attributes so they can reference each other.
     if (is_array($handlerinfo['attributes']))
@@ -1081,13 +1056,13 @@ function feproc_userapi_handlerdata($args)
                 // Suppress self-referencing loops.
                 if ($attrName != $itemName)
                 {
-                    $attrValue = preg_replace("/\\\${attribute:$itemName}/i", $itemValue, $attrValue);
+                    $attrValue = str_ireplace('${attribute:' . $itemName. '}', $itemValue, $attrValue);
 
                     if ($removeunmatched)
                     {
                         // Finally remove any fields that have not matched anything.
                         // TODO: visit this preg and make it strictor (form|attribute|...)
-                        $attrValue = preg_replace('/\${.+:.+}/', '', $attrValue);
+                        $attrValue = preg_replace('/\${[^:]+:[^}]+}/', '', $attrValue);
                     }
                 }
             }
