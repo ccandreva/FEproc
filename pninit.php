@@ -39,63 +39,8 @@ function feproc_init()
 
     /////////////////////
     // Handlers table.
-
-    $feprocTable  = $pntable['feproc_handlers'];
-    $feprocColumn = &$pntable['feproc_handlers_column'];
-    $feprocIDcolumn = preg_replace("/^$feprocTable\./", '', $feprocColumn[id]);
-
-    // Create the table.
-    $sql = "create table $feprocTable (
-            $feprocColumn[id] int(10) not null auto_increment,
-            $feprocColumn[name] varchar(64) not null default '',
-            $feprocColumn[description] text,
-            $feprocColumn[type] varchar(30),
-            $feprocColumn[version] varchar(30),
-            $feprocColumn[modulename] varchar(60),
-            $feprocColumn[apiname] varchar(60),
-            $feprocColumn[apifunc] varchar(60),
-            $feprocColumn[attributes] text,
-            primary key($feprocIDcolumn) )";
-    $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an
-    // appropriate error message and return
-    if ($dbconn->ErrorNo() != 0)
-    {
-        pnSessionSetVar('errormsg', _FXCREATETABLEFAILED . " " . $sql);
-        return false;
-    }
-
-    /////////////////////////
-    // Sets and stages table.
-
-    $feprocTable  = $pntable['feproc_workflow'];
-    $feprocColumn = &$pntable['feproc_workflow_column'];
-    $feprocIDcolumn = preg_replace("/^$feprocTable\./", '', $feprocColumn[id]);
-
-    // Create the table.
-    $sql = "create table $feprocTable (
-            $feprocColumn[id] int(10) not null auto_increment,
-            $feprocColumn[name] varchar(64) not null default '',
-            $feprocColumn[description] text,
-            $feprocColumn[type] varchar(30),
-            $feprocColumn[attributes] text,
-            $feprocColumn[setid] int(10) not null default 0,
-            $feprocColumn[successid] int(10),
-            $feprocColumn[failureid] int(10),
-            $feprocColumn[handlerid] int(10),
-            $feprocColumn[secure] tinyint(4) not null default 0,
-            $feprocColumn[startstage] tinyint(4) not null default 0,
-            primary key($feprocIDcolumn) )";
-    $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an
-    // appropriate error message and return
-    if ($dbconn->ErrorNo() != 0)
-    {
-        pnSessionSetVar('errormsg', _FXCREATETABLEFAILED . " " . $sql);
-        return false;
-    }
+    if ( !DBUtil::createTable('feproc_handlers')) return false;
+    if ( !DBUtil::createTable('feproc_workflow')) return false;
 
     // There are no module variables at this stage. There is ample scope to
     // make much of the behaviour of this module configurable.
@@ -133,11 +78,7 @@ function feproc_upgrade($oldversion)
     $dataversion = preg_replace('/^([0-9]+\.[0-9]+)\..*/', '$1', $oldversion);
 
     // Get datbase setup.
-    list($dbconn) = pnDBGetConn();
     $pntable = pnDBGetTables();
-
-    $feprocTableWF  = $pntable['feproc_workflow'];
-    $feprocColumnWF = &$pntable['feproc_workflow_column'];
 
     // Upgrade dependent on old version number
     switch($dataversion) {
@@ -153,59 +94,29 @@ function feproc_upgrade($oldversion)
 
             pnModSetVar('FEproc', 'attrtextrows', 6);
             pnModSetVar('FEproc', 'attrtextcols', 40);
-            break;
-    }
 
-    // For upgrade to 0.3
-    switch($dataversion) {
+        // For upgrade to 0.3
         case "0.2":
             // Add the new 'starting stage indicator' to the workflow table
             // to support multiple starting stages.
-            $sql = "alter   table $feprocTableWF 
-                    add     $feprocColumnWF[startstage] tinyint(4) not null default 0";
-            $dbconn->Execute($sql);
-
-            // Check for an error with the database code, and if so set an
-            // appropriate error message and return
-            if ($dbconn->ErrorNo() != 0)
-            {
-                pnSessionSetVar('errormsg', _FXCREATETABLEFAILED . " " . $sql);
-                return false;
-            }
+            DBUtil::changeTable('feproc_workflow');
 
             // Get a list of starting stages.
-            $sql = "select  $feprocColumnWF[successid]
-                    from    $feprocTableWF 
-                    where   $feprocColumnWF[type] = 'set'
-                    and     $feprocColumnWF[successid] > 0";
-            $result = $dbconn->Execute($sql);
-
-            $startingstages = array();
-            for (; !$result->EOF; $result->MoveNext())
-            {
-                $startingstages[] = $result->fields[0];
-            }
+            $startingstages = DBUtil::selectFieldArray('feproc_workflow', 'successid', 
+                    "WHERE type='set' AND successid > 0'");
 
             // If there are starting stages, then update their flags.
             if (count($startingstages) > 0)
             {
-                // Convert into CSV string.
-                $startingstages = implode(',', $startingstages);
-
-                // Set the starting stage flag for the current starting stages.
-                $sql = "update  $feprocTableWF 
-                        set     $feprocColumnWF[startstage] = 2
-                        where   $feprocColumnWF[id] in ($startingstages)";
-                $dbconn->Execute($sql);
+                $obj = array();
+                foreach ($startingstages as $stage) {
+                        $obj[] = array('id' => $stage, 'startstage' => 2);
+                }
+                DBUTil::updateObjectArray($obj, 'feproc_workflow'); 
             }
 
-            break;
-    }
-
-    // For upgrade to 0.4
-    switch($dataversion) {
-        case "0.3":
-            break;
+            // For upgrade to 0.4
+        // case "0.3":
     }
 
     // Update successful
@@ -219,33 +130,10 @@ function feproc_upgrade($oldversion)
  */
 function feproc_delete()
 {
-    // Get datbase setup.
-    list($dbconn) = pnDBGetConn();
-    $pntable = pnDBGetTables();
-
-    // Drop the table.
-    $sql = "DROP TABLE $pntable[feproc_handlers]";
-    $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an
-    // appropriate error message and return
-    if ($dbconn->ErrorNo() != 0)
-    {
-        // Report failed deletion attempt
-        return false;
-    }
-
-    $sql = "DROP TABLE $pntable[feproc_workflow]";
-    $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an
-    // appropriate error message and return
-    if ($dbconn->ErrorNo() != 0)
-    {
-        // Report failed deletion attempt
-        return false;
-    }
-
+    // Drop the tables.
+    DBUtil::dropTable('feproc_handlers');
+    DBUtil::dropTable('feproc_workflow');
+    
     // Delete any module variables
     pnModDelVar('FEproc', 'itemsperpage');
     pnModDelVar('FEproc', 'removeunmatched');
@@ -253,13 +141,13 @@ function feproc_delete()
     pnModDelVar('FEproc', 'shareformitems');
     pnModDelVar('FEproc', 'tracestack');
 
-	pnModDelVar('FEproc', 'attrstringlen');
+    pnModDelVar('FEproc', 'attrstringlen');
     pnModDelVar('FEproc', 'attrstringsize');
     
-	pnModDelVar('FEproc', 'attrtextrows');
+    pnModDelVar('FEproc', 'attrtextrows');
     pnModDelVar('FEproc', 'attrtextcols');
 
-	// Deletion successful
+    // Deletion successful
     return true;
 }
 
