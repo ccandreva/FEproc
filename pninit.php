@@ -1,30 +1,34 @@
 <?php
-// ----------------------------------------------------------------------
-// FEproc - Mail template backend module for FormExpress for
-// POST-NUKE Content Management System
-// Copyright (C) 2002 by Jason Judge
-// ----------------------------------------------------------------------
-// Based on:
-// PHP-NUKE Web Portal System - http://phpnuke.org/
-// ----------------------------------------------------------------------
-// LICENSE
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License (GPL)
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WIthOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// To read the license please visit http://www.gnu.org/copyleft/gpl.html
-// ----------------------------------------------------------------------
-// Original Author of file: Jason Judge.
-// Based on template by Jim MacDonald.
-// Current Maintainer of file: Klavs Klavsen <kl-feproc@vsen.dk>
-// ----------------------------------------------------------------------
+/**
+ * FEproc - Mail template backend module for FormExpress for 
+ *   Zikula Content Management System
+ * 
+ * @copyrightt (C) 2002 by Jason Judge, 2011 Chris Candreva
+ * @Version $Id: tables.php 84 2011-05-27 18:19:28Z ccandreva $
+ * @license GNU/GPL - http://www.gnu.org/copyleft/gpl.html
+ * @package FEproc
+ *
+ *
+ * LICENSE
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License (GPL)
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WIthOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * To read the license please visit http://www.gnu.org/copyleft/gpl.html
+ * ----------------------------------------------------------------------
+ * Original Author of file: Jason Judge.
+ * Based on template by Jim MacDonald.
+ * Current Maintainer of file: Chris Candreva <chris@westnet.com>
+ * ----------------------------------------------------------------------
+ * 
+ */
 
 /**
  * initialise the module
