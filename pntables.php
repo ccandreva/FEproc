@@ -34,7 +34,7 @@
  * This function is called internally by the core whenever the module is
  * loaded.  It adds in the database table information.
  */
-function feproc_tables()
+function feproc_pntables()
 {
     // Initialise table array
     $table = array();
