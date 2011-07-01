@@ -89,6 +89,7 @@ function feproc_handleruserapi_gethandler($args)
       
   $handler['source'] = implode(':', array($handler['type'], $handler['modulename'], $handler['apiname'], $handler['apifunc']));
   $handler['hid'] = $handler['id'];
+  $handler['attributes'] = unserialize($handler['attributes']);
   
   return $handler;
 }
@@ -119,7 +120,7 @@ function feproc_handleruserapi_getallhandlers($args)
     $numitems = -1;
   }
 
-  $handlers = array();
+  //$handlers = array();
 
   // Early security check.
   if (!pnSecAuthAction(0, 'FEproc::', "::", ACCESS_READ))
@@ -129,7 +130,7 @@ function feproc_handleruserapi_getallhandlers($args)
 
   if ($type)
   {
-      $where = "type = $type";
+      $where = "fp_type = '$type'";
   } else {
       $where = '';
   }
