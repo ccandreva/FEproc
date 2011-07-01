@@ -1,30 +1,34 @@
 <?php
-// ----------------------------------------------------------------------
-// FEproc - Mail template backend module for FormExpress for
-// POST-NUKE Content Management System
-// Copyright (C) 2003 by Jason Judge
-// ----------------------------------------------------------------------
-// Based on:
-// PHP-NUKE Web Portal System - http://phpnuke.org/
-// ----------------------------------------------------------------------
-// LICENSE
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License (GPL)
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WIthOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// To read the license please visit http://www.gnu.org/copyleft/gpl.html
-// ----------------------------------------------------------------------
-// Original Author of file: Jason Judge.
-// Based on template by Jim MacDonald.
-// Current Maintainer of file: Klavs Klavsen <kl-feproc@vsen.dk>
-// ----------------------------------------------------------------------
+/**
+ * FEproc - Mail template backend module for FormExpress for 
+ *   Zikula Content Management System
+ * 
+ * @copyrightt (C) 2002 by Jason Judge, 2011 Chris Candreva
+ * @Version $Id: tables.php 84 2011-05-27 18:19:28Z ccandreva $
+ * @license GNU/GPL - http://www.gnu.org/copyleft/gpl.html
+ * @package FEproc
+ *
+ *
+ * LICENSE
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License (GPL)
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WIthOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * To read the license please visit http://www.gnu.org/copyleft/gpl.html
+ * ----------------------------------------------------------------------
+ * Original Author of file: Jason Judge.
+ * Based on template by Jim MacDonald.
+ * Current Maintainer of file: Chris Candreva <chris@westnet.com>
+ * ----------------------------------------------------------------------
+ * 
+ */
 
 
 /*******************
@@ -40,100 +44,32 @@
  */
 function feproc_adminapi_createset($args)
 {
+    // Early security check.
+   if (!SecurityUtil::checkPermission ('FEproc::', '::', ACCESS_ADD)) {
+        return LogUtil::registerPermissionError();
+    }
+
     // Get arguments from argument array.
     extract($args);
 
     // Argument check.
-    if (!isset($name) ||
-        !isset($description)
-        )
-    {
+    if (!isset($name) || !isset($description)) {
         pnSessionSetVar('errormsg', _FXMODARGSERROR);
         return false;
     }
 
-    // Early security check.
-    if (!pnSecAuthAction(0, 'FEproc::', "::", ACCESS_ADD)) {
-        pnSessionSetVar('errormsg', _FXNOAUTH);
-        return false;
-    }
+    $obj = array ('name' => $name, 'description' => $description, 'type' => 'set');
+    DBUtil::insertObject($obj, 'feproc_workflow');
+    $setid = $obj['setid'];
 
-    // Load handler user API.
-    if (!pnModAPILoad('feproc', 'handleruser'))
-    {
-        $output->Text(_FXMODLOADFAILED . ' feproc:handleruser');
-        return $output->GetOutput();
-    }
-
-    // Get database setup.
-    list($dbconn) = pnDBGetConn();
-    $pntable = pnDBGetTables();
-
-    $wftable = $pntable['feproc_workflow'];
-    $wfcolumn = &$pntable['feproc_workflow_column'];
-
-    // Get next ID in table.
-    $sql = "SELECT MAX($wfcolumn[id]) + 1 FROM $wftable";
-    $result = $dbconn->Execute($sql);
-    if ($dbconn->ErrorNo() != 0) {
-        pnSessionSetVar('errormsg', _FXCREATEFAILED . ' ' . $sql);
-        return false;
-    }
-
-    list($nextId) = $result->fields;
+    // We don't have the object ID until after it is created,
+    // so we need to update the setid with the object id.
+    $obj['setid'] = $setid;
+    DBUtil::updateObject($obj, 'feproc_workflow');
     
-    if (empty($nextId))
-    {
-        $nextId = 1;
-    }
-
-    // Does not appear to work.
-    //$nextId = $dbconn->GenId($wftable);
-
-    // Add item.
-    $sql = "INSERT INTO $wftable (
-              $wfcolumn[id],
-              $wfcolumn[name],
-              $wfcolumn[description],
-              $wfcolumn[type],
-              $wfcolumn[setid],
-              $wfcolumn[handlerid],
-              $wfcolumn[failureid],
-              $wfcolumn[successid],
-              $wfcolumn[secure],
-              $wfcolumn[attributes])
-            VALUES (
-              $nextId,
-              '" . pnVarPrepForStore($name) . "',
-              '" . pnVarPrepForStore($description) . "',
-              'set',
-              $nextId,
-              0,
-              0,
-              0,
-              0,
-              NULL)";
-
-    $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an
-    // appropriate error message and return
-    if ($dbconn->ErrorNo() != 0) {
-        pnSessionSetVar('errormsg', _FXCREATEFAILED . ' ' . $sql);
-        return false;
-    }
-
-    // Get the ID of the item that we inserted.
-    $setid = $dbconn->PO_Insert_ID($wftable, $wfcolumn['id']);
-
-    // Let any hooks know that we have created a new item.  As this is a
-    // create hook we're passing 'id' as the extra info, which is the
-    // argument that all of the other functions use to reference this
-    // item
-    // TODO: this is not a standard item
+    // Let any hooks know that we have created a new set.
     pnModCallHooks('item', 'createset', $setid, 'setid');
 
-    // Return the id of the newly created item to the calling process
     return $setid;
 }
 
@@ -148,24 +84,19 @@ function feproc_adminapi_createset($args)
  */
 function feproc_adminapi_updateset($args)
 {
+    // Early security check.
+   if (!SecurityUtil::checkPermission ('FEproc::', '::', ACCESS_EDIT)) {
+        return LogUtil::registerPermissionError();
+    }
+
     // Get arguments from argument array.
     extract($args);
 
     // Argument check.
     // TODO: success and failure stage IDs
-    if (!isset($setid) ||
-        !isset($name) ||
-        !isset($description)/* ||
-        !isset($attributes)*/)
-    {
+    if (!isset($setid) || !isset($name) || !isset($description)) {
         pnSessionSetVar('errormsg', _FXMODARGSERROR);
         return false;
-    }
-
-    if (!pnModAPILoad('feproc', 'user'))
-    {
-      pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-      return false;
     }
 
     // The API function is called.
@@ -173,42 +104,18 @@ function feproc_adminapi_updateset($args)
             array('setid' => $setid)
     );
 
-    if ($item == false)
-    {
+    if ($item == false) {
         pnSessionSetVar('errormsg', 'No such set'); // TODO: what next?
         return false;
     }
 
-    // Early security check.
-
-    if (!pnSecAuthAction(0, 'FEproc::', "$hid::", ACCESS_EDIT)) // TODO
-    {
-        pnSessionSetVar('errormsg', _FXNOAUTH);
-        return false;
-    }
-
-    // Get database setup.
-    list($dbconn) = pnDBGetConn();
-    $pntable = pnDBGetTables();
-
     $wftable = $pntable['feproc_workflow'];
     $wfcolumn = &$pntable['feproc_workflow_column'];
 
-    // Update the item.
-    $sql = "UPDATE $wftable
-            SET $wfcolumn[name] = '" . pnVarPrepForStore($name) . "',
-                $wfcolumn[description] = '" . pnVarPrepForStore($description) . "',
-                $wfcolumn[successid] = '" . pnVarPrepForStore($startstageid) . "'
-            WHERE $wfcolumn[id] = " . pnVarPrepForStore($setid);
-
-    $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an
-    // appropriate error message and return
-    if ($dbconn->ErrorNo() != 0) {
-        pnSessionSetVar('errormsg', _FXUPDATEFAILED . ' ' . $sql);
-        return false;
-    }
+    // Update the item
+    $obj = array('id' => $setid, 'name' => $name, 'description' => $description,
+            'successid' => $startstageid);
+    DBUtil::updateObject($obj, 'feproc_workflow');
 
     // Now make sure the start stages are set if appropriate.
     if ($startstageid > 0)
@@ -219,14 +126,7 @@ function feproc_adminapi_updateset($args)
                 WHERE   $wfcolumn[setid] = " . pnVarPrepForStore($setid) . "
                 AND     $wfcolumn[id] = " . pnVarPrepForStore($startstageid) . "
                 AND     $wfcolumn[startstage] <> 2";
-        $dbconn->Execute($sql);
-
-        // Check for an error with the database code, and if so set an
-        // appropriate error message and return
-        if ($dbconn->ErrorNo() != 0) {
-            pnSessionSetVar('errormsg', _FXUPDATEFAILED . ' ' . $sql);
-            return false;
-        }
+        $result = DBUtil::executeSQL($sql);
 
         // Reset the non-default start stages.
         $sql = "UPDATE  $wftable
@@ -235,14 +135,7 @@ function feproc_adminapi_updateset($args)
                 AND     $wfcolumn[id] <> " . pnVarPrepForStore($setid) . "
                 AND     $wfcolumn[id] <> " . pnVarPrepForStore($startstageid) . "
                 AND     $wfcolumn[startstage] = 2";
-        $dbconn->Execute($sql);
-
-            // Check for an error with the database code, and if so set an
-        // appropriate error message and return
-        if ($dbconn->ErrorNo() != 0) {
-            pnSessionSetVar('errormsg', _FXUPDATEFAILED . ' ' . $sql);
-            return false;
-        }
+        $result = DBUtil::executeSQL($sql);
     }
 
     // Let the calling process know that we have finished successfully
@@ -261,28 +154,15 @@ function feproc_adminapi_deleteset($args)
     // Get arguments from argument array.
     extract($args);
 
+    // Early security check.
+   if (!SecurityUtil::checkPermission ('FEproc::', '::', ACCESS_DELETE)) {
+        return LogUtil::registerPermissionError();
+    }
+
     // Argument check.
     if (!isset($setid)) {
         pnSessionSetVar('errormsg', _FXMODARGSERROR);
         return false;
-    }
-
-    // Early security check.
-    if (!pnSecAuthAction(0, 'FEproc::', "$hid::", ACCESS_DELETE)) {
-        pnSessionSetVar('errormsg', _FXNOAUTH);
-        return false;
-    }
-
-    if (!pnModAPILoad('feproc', 'admin')) {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'admin', 'viewset', array('setid' => $setid)));
-        return true;
-    }
-
-    if (!pnModAPILoad('feproc', 'user')) {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'admin', 'viewset', array('setid' => $setid)));
-        return true;
     }
 
     // Check if there are any stages that have not been deleted yet.
@@ -291,38 +171,13 @@ function feproc_adminapi_deleteset($args)
 
     if (is_array($stages))
     {
-        pnSessionSetVar('errormsg', "Must delete all stages before the set can be deleted.");
-        pnRedirect(pnModURL('feproc', 'admin', 'viewset', array('setid' => $setid)));
+        pnSessionSetVar('errormsg', __("You must delete all stages before the set can be deleted.") );
+        pnRedirect(pnModURL('feproc', 'admin', 'viewsets', array('setid' => $setid)));
         return true;
     }
 
-    // The API function is called.
-    $item = pnModAPIFunc('feproc', 'user', 'getset',
-            array('setid' => $setid));
-
-    if ($item == false) {
-        pnSessionSetVar('errormsg', "Set $setid does not exist");
-        return false;
-    }
-
     // Get datbase setup.
-    list($dbconn) = pnDBGetConn();
-    $pntable = pnDBGetTables();
-
-    $wftable = $pntable['feproc_workflow'];
-    $wfcolumn = &$pntable['feproc_workflow_column'];
-
-    // Delete the item.
-    $sql = "DELETE FROM $wftable
-            WHERE $wfcolumn[id] = " . pnVarPrepForStore($setid);
-    $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an
-    // appropriate error message and return.
-    if ($dbconn->ErrorNo() != 0) {
-        pnSessionSetVar('errormsg', _FXDELETEFAILED);
-        return false;
-    }
+    DBUtil::deleteObjectByID('feproc_workflow', $setid);
 
     // Let any hooks know that we have deleted an item.
     // TODO: distinguish between different types of item.
@@ -348,6 +203,10 @@ function feproc_adminapi_deleteset($args)
  */
 function feproc_adminapi_createstage($args)
 {
+    // Early security check.
+   if (!SecurityUtil::checkPermission ('FEproc::', '::', ACCESS_ADD)) {
+        return LogUtil::registerPermissionError();
+    }
     // Get arguments from argument array.
     extract($args);
 
@@ -377,19 +236,6 @@ function feproc_adminapi_createstage($args)
         $startstage = 0;
     }
 
-    // Early security check.
-    if (!pnSecAuthAction(0, 'FEproc::', "::", ACCESS_ADD)) {
-        pnSessionSetVar('errormsg', _FXNOAUTH);
-        return false;
-    }
-
-    // Load handler user API.
-    if (!pnModAPILoad('feproc', 'handleruser'))
-    {
-        $output->Text(_FXMODLOADFAILED . ' feproc:handleruser');
-        return $output->GetOutput();
-    }
-
     // TODO: create default attributes for the stage.
     // The attributes come from the handler details.
     // Get the handler.
@@ -412,63 +258,28 @@ function feproc_adminapi_createstage($args)
     }
     $sattributes = serialize($sattributes);
 
-    // Get datbase setup.
-    list($dbconn) = pnDBGetConn();
-    $pntable = pnDBGetTables();
-
-    $wftable = $pntable['feproc_workflow'];
-    $wfcolumn = &$pntable['feproc_workflow_column'];
-
-    // Get next ID in table.
-    $sql = "SELECT MAX($wfcolumn[id]) + 1 FROM $wftable";
-    $result = $dbconn->Execute($sql);
-    if ($dbconn->ErrorNo() != 0) {
-        pnSessionSetVar('errormsg', _FXCREATEFAILED . ' ' . $sql);
-        return false;
-    }
-
-    list($nextId) = $result->fields;
-    
-    if (empty($nextId))
-    {
-        $nextId = 1;
-    }
-
-    // Does not appear to work.
-    //$nextId = $dbconn->GenId($wftable);
-
     // Add item.
-    $sql = "INSERT INTO $wftable (
-              $wfcolumn[id],
-              $wfcolumn[name],
-              $wfcolumn[description],
-              $wfcolumn[type],
-              $wfcolumn[setid],
-              $wfcolumn[handlerid],
-              $wfcolumn[secure],
-              $wfcolumn[startstage],
-              $wfcolumn[attributes])
-            VALUES (
-              $nextId,
-              '" . pnVarPrepForStore($name) . "',
-              '" . pnVarPrepForStore($description) . "',
-              '" . pnVarPrepForStore($handlertype) . "',
-              '" . pnVarPrepForStore($setid) . "',
-              '" . pnVarPrepForStore($hid) . "',
-              '" . pnVarPrepForStore($secure) . "',
-              '" . pnVarPrepForStore($startstage) . "',
-              '" . pnVarPrepForStore($sattributes) . "')";
-    $dbconn->Execute($sql);
+    $obj = array(
+              'name' => $name,
+              'description' => $description,
+              'type' => $handlertype,
+              'setid' => $setid,
+              'handlerid' => $hid,
+              'secure' => $secure,
+              'startstage' => $startstage,
+              'attributes' => $sattributes,
+    );
+    $result = DBUtil::insertObject($obj, 'feproc_workflow');
 
     // Check for an error with the database code, and if so set an
     // appropriate error message and return
-    if ($dbconn->ErrorNo() != 0) {
+    if (!$result) {
         pnSessionSetVar('errormsg', _FXCREATEFAILED . ' ' . $sql);
         return false;
     }
 
     // Get the ID of the item that we inserted.
-    $stageid = $dbconn->PO_Insert_ID($wftable, $wfcolumn['id']);
+    $stageid = $obj['id'];
 
     // Let any hooks know that we have created a new item.
     // TODO: this is not a standard item
@@ -488,37 +299,25 @@ function feproc_adminapi_createstage($args)
  */
 function feproc_adminapi_updatestage($args)
 {
-    // Get arguments from argument array.
-    extract($args);
+
+    // For now we'll use a pointer, use the object as passed in.
+    $obj = &$args;
 
     // Argument check.
-    if (!isset($stageid) ||
-        !isset($name) ||
-        !isset($description)/* ||
-        !isset($attributes)*/)
+    if (!isset($obj['id']) ||
+        !isset($obj['name']) ||
+        !isset($obj['description']) )
     {
         pnSessionSetVar('errormsg', _FXMODARGSERROR);
         return false;
     }
 
-    if (!isset($secure))
-    {
-        $secure = 0;
-    }
-
-    if (!isset($successid))
-    {
-        $successid = 0;
-    }
-
-    if (!isset($failureid))
-    {
-        $failureid = 0;
-    }
-
-    if (!isset($startstage))
-    {
-        $startstage = 0;
+    $startstage = &$obj['startstage'];
+    $stageid = &$obj['id'];
+    
+    // Early security check.
+   if (!SecurityUtil::checkPermission ('FEproc::', "$stageid::", ACCESS_EDIT)) {
+        return LogUtil::registerPermissionError();
     }
 
     if (!is_numeric($startstage) || $startstage < 0 || $startstage > 2)
@@ -526,67 +325,27 @@ function feproc_adminapi_updatestage($args)
         $startstage = 0;
     }
 
-    if (!pnModAPILoad('feproc', 'user'))
-    {
-      pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-      return false;
-    }
-
     // The API function is called.
-    $item = pnModAPIFunc('feproc', 'user', 'getstage',
-            array('stageid' => $stageid)
-    );
+    $item = pnModAPIFunc('feproc', 'user', 'getstage', array('stageid' => $stageid) );
 
     if ($item == false)
     {
-        pnSessionSetVar('errormsg', 'No such stage'); //TODO
-        return false;
-    }
-
-    // Early security check.
-
-    if (!pnSecAuthAction(0, 'FEproc::', "$hid::", ACCESS_EDIT)) // TODO
-    {
-        pnSessionSetVar('errormsg', _FXNOAUTH);
+        pnSessionSetVar('errormsg', __('No such stage'));
         return false;
     }
 
     // The attributes will be an array.
-    if ($attributes == null || empty($attributes) || !isset($attributes))
+    if ( isset($obj['attributes']) && is_array($obj['attributes']))
     {
-        $attributes = false;
+        $sattributes = serialize($obj['attributes']);
+    } else {
+        $sattributes = serialize(false);
     }
-    $sattributes = serialize($attributes);
+    $obj['attributes'] = $sattributes;
+    $result = DBUtil::updateObject($obj, 'feproc_workflow');
     
-    // Get database setup.
-    list($dbconn) = pnDBGetConn();
-    $pntable = pnDBGetTables();
-
-    $wftable = $pntable['feproc_workflow'];
-    $wfcolumn = &$pntable['feproc_workflow_column'];
-
-    // Update the item.
-    $sql = "UPDATE $wftable
-            SET $wfcolumn[name] = '" . pnVarPrepForStore($name) . "',
-                $wfcolumn[description] = '" . pnVarPrepForStore($description) . "',
-                $wfcolumn[secure] = '" . pnVarPrepForStore($secure) . "',
-                $wfcolumn[successid] = '" . pnVarPrepForStore($successid) . "',
-                $wfcolumn[failureid] = '" . pnVarPrepForStore($failureid) . "',
-                $wfcolumn[startstage] = '" . pnVarPrepForStore($startstage) . "',
-                $wfcolumn[attributes] = '" . pnVarPrepForStore($sattributes) . "'
-            WHERE $wfcolumn[id] = " . pnVarPrepForStore($stageid);
-
-    $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an
-    // appropriate error message and return
-    if ($dbconn->ErrorNo() != 0) {
-        pnSessionSetVar('errormsg', _FXUPDATEFAILED . ' ' . $sql);
-        return false;
-    }
-
     // Let the calling process know that we have finished successfully
-    return true;
+    return $result;
 }
 
 /**
@@ -607,25 +366,11 @@ function feproc_adminapi_deletestage($args)
         return false;
     }
 
-    // Security check.
-    if (!pnSecAuthAction(0, 'FEproc::', "$hid::", ACCESS_DELETE)) {
-        pnSessionSetVar('errormsg', _FXNOAUTH);
-        return false;
+    // Early security check.
+   if (!SecurityUtil::checkPermission ('FEproc::', "$stageid::", ACCESS_DELETE)) {
+        return LogUtil::registerPermissionError();
     }
 
-    if (!pnModAPILoad('feproc', 'admin')) {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'admin', 'viewset', array('setid' => $setid)));
-        return true;
-    }
-
-    if (!pnModAPILoad('feproc', 'user')) {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'admin', 'viewset', array('setid' => $setid)));
-        return true;
-    }
-
-    // The API function is called.
     $item = pnModAPIFunc('feproc', 'user', 'getstage',
             array('stageid' => $stageid));
 
@@ -634,46 +379,18 @@ function feproc_adminapi_deletestage($args)
         return false;
     }
 
-    // Get database setup.
-    list($dbconn) = pnDBGetConn();
-    $pntable = pnDBGetTables();
+    DBUtil::deleteObjectById('feproc_workflow', $stageid);
 
-    $wftable = $pntable['feproc_workflow'];
-    $wfcolumn = &$pntable['feproc_workflow_column'];
-
-    // Delete the item.
-    $sql = "DELETE FROM $wftable
-            WHERE $wfcolumn[id] = " . pnVarPrepForStore($stageid);
-    $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an
-    // appropriate error message and return.
-    if ($dbconn->ErrorNo() != 0) {
-        pnSessionSetVar('errormsg', _FXDELETEFAILED);
-        return false;
-    }
+    $table = pnDBGetTables();
+    $wfcolumn = $table['feproc_workflow_column'];
 
     // Update any other stages that point to the deleted item (so there are no
     // dead-ends).
-    $sql = "UPDATE $wftable
-            SET $wfcolumn[successid] = 0
-            WHERE $wfcolumn[successid] = " . pnVarPrepForStore($stageid);
-    $dbconn->Execute($sql);
-
-    if ($dbconn->ErrorNo() != 0) {
-        pnSessionSetVar('errormsg', _FXDELETEFAILED);
-        return false;
-    }
-
-    $sql = "UPDATE $wftable
-            SET $wfcolumn[failureid] = 0
-            WHERE $wfcolumn[failureid] = " . pnVarPrepForStore($stageid);
-    $dbconn->Execute($sql);
-
-    if ($dbconn->ErrorNo() != 0) {
-        pnSessionSetVar('errormsg', _FXDELETEFAILED);
-        return false;
-    }
+    DBUtil::UpdateObject( array('successid' => 0),'feproc_workflow',
+                $wfcolumn[successid] . ' = ' . $stageid);
+    DBUtil::UpdateObject( array('failureid' => 0),'feproc_workflow',
+                $wfcolumn[failureid] . ' = ' . $stageid);
+    
 
     // Let any hooks know that we have deleted an item.
     // TODO: distinguish between different types of item.
