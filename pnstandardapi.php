@@ -61,6 +61,7 @@ function feproc_standardapi_feprochandlerindex()
         Array('type' => 'transform', 'apifunc' => 'creditcards'),
         Array('type' => 'transform', 'apifunc' => 'setfields'),
         Array('type' => 'transform', 'apifunc' => 'unixpgp5encode'),
+        Array('type' => 'transform', 'apifunc' => 'text2html'),
         Array('type' => 'validate', 'apifunc' => 'fieldsareset'),
         Array('type' => 'validate', 'apifunc' => 'checkdomain'),
         Array('type' => 'validate', 'apifunc' => 'fileexists')
@@ -780,6 +781,46 @@ function feproc_standardapi_unixpgp5encode($args)
     return false;
 }
 
+// text2html: Turn a block of plain text into HTML with <br /> tags.
+function feproc_standardapi_text2html($args)
+{
+  extract ($args);
+
+  $handlerInfo =
+    array(
+      'name'        => 'Text to Html',
+      'description' => 'Convert text field to HTML with br tags',
+      'type'        => 'transform',
+      'version'     => '1.0',
+      'attributes'  => array
+        (
+        )
+    );
+
+  if ($action == 'info')
+    return $handlerInfo;
+
+  if ($action == 'help')
+    return 'Simple transform of line endings to br tags';
+
+  if ($action == 'execute')
+  {
+
+        $form = $info['form'];
+        $newform = array();
+        foreach ($form as $field => $value) {
+                $value = preg_replace('!(^[\s\n\r]+)!','',$value);
+                $newvalue = preg_replace('!([\n\r]+)!', '<br />$1', $value, -1, $count);
+                if ($count > 0) {
+                        $newform[$field] = $newvalue;
+                }
+        }
+        return Array ( 'result' => true, 'form' => $newform);
+
+  }
+
+  return false;
+}
 
 // Validate handlers return the following array:
 // - 'result': true or false to indicate whether the validation succeded or failed.
