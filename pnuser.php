@@ -1,30 +1,34 @@
 <?php
-// ----------------------------------------------------------------------
-// FEproc - Mail template backend module for FormExpress for
-// POST-NUKE Content Management System
-// Copyright (C) 2003 by Jason Judge
-// ----------------------------------------------------------------------
-// Based on:
-// PHP-NUKE Web Portal System - http://phpnuke.org/
-// ----------------------------------------------------------------------
-// LICENSE
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License (GPL)
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WIthOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// To read the license please visit http://www.gnu.org/copyleft/gpl.html
-// ----------------------------------------------------------------------
-// Original Author of file: Jason Judge.
-// Based on template by Jim MacDonald.
-// Current Maintainer of file: Klavs Klavsen <kl-feproc@vsen.dk>
-// ----------------------------------------------------------------------
+/**
+ * FEproc - Mail template backend module for FormExpress for 
+ *   Zikula Content Management System
+ * 
+ * @copyrightt (C) 2002 by Jason Judge, 2011 Chris Candreva
+ * @Version $Id:                                              $
+ * @license GNU/GPL - http://www.gnu.org/copyleft/gpl.html
+ * @package FEproc
+ *
+ *
+ * LICENSE
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License (GPL)
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WIthOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * To read the license please visit http://www.gnu.org/copyleft/gpl.html
+ * ----------------------------------------------------------------------
+ * Original Author of file: Jason Judge.
+ * Based on template by Jim MacDonald.
+ * Current Maintainer of file: Chris Candreva <chris@westnet.com>
+ * ----------------------------------------------------------------------
+ * 
+ */
 
 /*
  * Handler for FormExpress
@@ -35,29 +39,26 @@
  */
 function feproc_user_formexpress($args)
 {
+    // General check for access to this module.
+   if (!SecurityUtil::checkPermission ('FEproc::', 'FEproc::', ACCESS_READ)) {
+        return LogUtil::registerPermissionError();
+    }
+
     // Get the arguments
     extract($args);
 
     if (isset($setid) && !is_numeric($setid))
     {
-        pnSessionSetVar('errormsg', _FXINVALIDPARAMETERS);
+        pnSessionSetVar('errormsg', __("Invalid Parameters"));
         return false;
     }
 
     if (!isset($action))
     {
-        pnSessionSetVar('errormsg', _FXINVALIDPARAMETERS);
+        pnSessionSetVar('errormsg', __("Invalid Parameters"));
         return false;
     } else {
         $action = strtolower($action);
-    }
-
-    // General check for access to this module.
-    if (!pnSecAuthAction(0, 'FEproc::', "FEproc::", ACCESS_READ))
-    {
-        pnSessionSetVar('errormsg', _BADAUTHKEY);
-        pnRedirect(pnModURL('feproc', 'user', 'view'));
-        return false;
     }
 
     // Ignore the form submission or validation. Catch the form again
@@ -75,27 +76,11 @@ function feproc_user_formexpress($args)
         $actionsuccess = false;
     }
 
-    // Include the FormExpress stuff.
-    if (!pnModLoad('FormExpress', 'user'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'user', 'view'));
-        return true;
-    }
-
     // Get the feproc session object.
     if (!pnModAPILoad('feproc', 'session'))
     {
         pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'user', 'view'));
-        return true;
-    }
-
-    if (!pnModAPILoad('feproc', 'user'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'user', 'view'));
-        return true;
+        return pnRedirect(pnModURL('feproc', 'user', 'view'));
     }
 
     // Get the FormExpress session object and extract the submitted form id.
@@ -138,8 +123,7 @@ function feproc_user_formexpress($args)
 
             // Try with the last stage id first (in case the same form is
             // used more than once in the set.
-            $currentstage = pnModAPIFunc(
-                'feproc', 'user', 'getstage',
+            $currentstage = pnModAPIFunc('feproc', 'user', 'getstage',
                 array(
                     'type' => 'formexpress',
                     'stageid' => $stageid,
@@ -152,8 +136,7 @@ function feproc_user_formexpress($args)
         if (!$currentstage)
         {
             // Try again without the stage.
-            $currentstage = pnModAPIFunc(
-                'feproc', 'user', 'getstage',
+            $currentstage = pnModAPIFunc('feproc', 'user', 'getstage',
                 array(
                     'type' => 'formexpress',
                     'handlerid' => $form_id,
@@ -179,8 +162,7 @@ function feproc_user_formexpress($args)
     {
         // Set is not in process. See if we can start one.
 
-        $currentstage = pnModAPIFunc(
-            'feproc', 'user', 'getstage',
+        $currentstage = pnModAPIFunc('feproc', 'user', 'getstage',
             array(
                 'start' => true,
                 'type' => 'formexpress',
@@ -193,19 +175,16 @@ function feproc_user_formexpress($args)
             // Yes - this is a starting stage form.
             $currentsetid = $currentstage['setid'];
             $stageid = $currentstage['id'];
-            if (pnSecAuthAction(0, 'FEproc::Set', "::$setid", ACCESS_READ))
+            if (SecurityUtil::checkPermission ('FEproc::Set', "::$setid", ACCESS_READ))
             {
                 $sessiondata->startSet($currentsetid, $stageid);
             } else {
-                pnSessionSetVar('errormsg', _BADAUTHKEY);
-                pnRedirect(pnModURL('feproc', 'user', 'view'));
-                return true;
+                return LogUtil::registerPermissionError();
             }
         } else {
             // TODO: error if no starting stage.
             pnSessionSetVar('errormsg', "Not a starting stage (this form can only be run as part of a set)");
-            pnRedirect(pnModURL('feproc', 'user', 'view'));
-            return true;
+            return pnRedirect(pnModURL('feproc', 'user', 'view'));
         }
     }
 
@@ -263,16 +242,17 @@ function feproc_user_formexpress($args)
     {
         // There is a URL to go to. This could be external to feproc
         // or it could be the next stage in the set.
-        pnRedirect($nextstage['url']);
-        return true;
+        return pnRedirect($nextstage['url']);
     }
 
     if ($nextstage['action'] == 'error')
     {
         // Display the text. This is a templated output.
-        // TODO: make this a redirect too.
-        return "<h3>Error</h3>" . $nextstage['text'];
+        $render = pnRender::getInstance('feproc');
+        $render->assign('text', $nextstage['text']);
+        return $render->fetch('feproc_user_error.html');
     }
+    
 
     // Don't know what the next stage is, so redirect to an error page.
     // TODO: handle better as an error.
@@ -293,6 +273,11 @@ function feproc_user_formexpress($args)
  */
 function feproc_user_process($args)
 {
+    // General check for access to this module.
+   if (!SecurityUtil::checkPermission ('FEproc::', '::', ACCESS_READ)) {
+        return LogUtil::registerPermissionError();
+    }
+
     list($stageid, $setid, /*$resetid,*/ $reset) = pnVarCleanFromInput('stageid', 'setid', /*'resetid',*/ 'reset');
 
     // TODO: not sure at all about this logic. Split up parameter checks into 
@@ -303,40 +288,14 @@ function feproc_user_process($args)
         && (!isset($resetid) || $resetid == 0 || !is_numeric($resetid)) )
     {
         pnSessionSetVar('errormsg', "Invalid or missing parameters");
-        pnRedirect(pnModURL('feproc', 'user', 'view'));
-        return true;
-    }
-
-    // General check for access to this module.
-    if (!pnSecAuthAction(0, 'FEproc::', "FEproc::", ACCESS_READ))
-    {
-        pnSessionSetVar('errormsg', _BADAUTHKEY);
-        pnRedirect(pnModURL('feproc', 'user', 'view'));
-        return false;
+        return pnRedirect(pnModURL('feproc', 'user', 'view'));
     }
 
     // Get the feproc session object.
     if (!pnModAPILoad('feproc', 'session'))
     {
         pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'user', 'view'));
-        return true;
-    }
-
-    // Get the feproc workflow API.
-    if (!pnModAPILoad('feproc', 'user'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'user', 'view'));
-        return true;
-    }
-
-    // Get the feproc handler API.
-    if (!pnModAPILoad('feproc', 'handleruser'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'user', 'view'));
-        return true;
+        return pnRedirect(pnModURL('feproc', 'user', 'view'));
     }
 
     $sessiondata = new feprocSession();
@@ -407,8 +366,7 @@ function feproc_user_process($args)
         if ($currentsetid && $stageid)
         {
             // A stageid has been supplied - get that stage from the set.
-            $stage = pnModAPIFunc(
-                'feproc', 'user', 'getstage',
+            $stage = pnModAPIFunc('feproc', 'user', 'getstage',
                 array(
                     'stageid' => $stageid,
                     'setid' => $currentsetid
@@ -424,8 +382,7 @@ function feproc_user_process($args)
         if ($currentsetid && !$stageid)
         {
             // A stageid has not been supplied - get the starting stage from the set.
-            $stage = pnModAPIFunc(
-                'feproc', 'user', 'getstage',
+            $stage = pnModAPIFunc('feproc', 'user', 'getstage',
                 array(
                     'start' => true,
                     'setid' => $currentsetid
@@ -496,8 +453,7 @@ function feproc_user_process($args)
         {
              // TODO: error if not a starting stage (redirect).
             pnSessionSetVar('errormsg', "Not a starting stage (this display page can only be run as part of a set)");
-            pnRedirect(pnModURL('feproc', 'user', 'view'));
-            return true;
+            return pnRedirect(pnModURL('feproc', 'user', 'view'));
         } else {
             $setid = $stage['setid'];
             $stageid = $stage['id'];
@@ -568,8 +524,7 @@ function feproc_user_process($args)
             'feproc', 'user', 'stageurl',
             array('stageid' => $stageid)
         );
-        pnRedirect($url);
-        return true;
+        return pnRedirect($url);
     }
 
     // Execute any backend handler stages then get the next user stage.
@@ -592,22 +547,18 @@ function feproc_user_process($args)
             'feproc', 'user', 'stageurl',
             array('stageid' => $stageid)
         );
-        pnRedirect($url);
-        return true;
+        return pnRedirect($url);
     }
-
     // Display handler: display the page now.
     if ($nextstage['action'] == 'display' || $nextstage['action'] == 'redirect')
     {
         // Get the template-substituted handler data.
-        $handlerdata = pnModAPIFunc(
-            'feproc', 'user', 'handlerdata',
+        $handlerdata = pnModAPIFunc('feproc', 'user', 'handlerdata',
             array('stageid' => $stageid)
         );
 
         // Get the handler details.
-        $handler = pnModAPIFunc(
-            'feproc', 'handleruser', 'gethandler',
+        $handler = pnModAPIFunc('feproc', 'handleruser', 'gethandler',
             array('hid' => $stage['handlerid'])
         );
 
@@ -662,6 +613,7 @@ function feproc_user_process($args)
 
                 // Handler returned success and some text to display.
                 return $handlerResult['text'];
+
             } else {
                 // Handler returned failure - redirect to the error stage.
                 if ($stage['failureid'])
@@ -720,9 +672,7 @@ function feproc_user_process($args)
                     // TODO: close session?
                 }
             }
-
-            pnRedirect($url);
-            return true;
+            return pnRedirect($url);
         }
     }
 
