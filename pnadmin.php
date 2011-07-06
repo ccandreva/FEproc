@@ -987,7 +987,7 @@ function feproc_admin_modifystage($args)
         pnRedirect(pnModURL('feproc', 'admin', 'view')); // TODO
         return true;
     }
-
+/*
     // Load admin API.
     if (!pnModAPILoad('feproc', 'admin'))
     {
@@ -1011,7 +1011,7 @@ function feproc_admin_modifystage($args)
         pnRedirect(pnModURL('feproc', 'admin', 'view')); // TODO
         return true;
     }
-
+*/
     // The API function is called.
     $item = pnModAPIFunc('feproc', 'user', 'getstage', array('stageid' => $stageid));
 
