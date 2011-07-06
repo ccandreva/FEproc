@@ -102,9 +102,10 @@ function feproc_admin_viewsets()
         foreach ($items as $item)
         {
             $row = array();
+            $setid = $item['id'];
 
             // Output whatever we found
-            $row[] = "$item[setid]: $item[name]";
+            $row[] = $setid. " : " . $item['name'];
             $row[] = $item['description'];
 
             if ($item['startstageid'])
@@ -118,24 +119,24 @@ function feproc_admin_viewsets()
             $options = array();
             $output->SetOutputMode(_PNH_RETURNOUTPUT);
             $options[] = $output->URL(pnModURL('feproc', 'admin', 'modifyset',
-                array('setid' => $item['setid'])), _FXEDIT);
+                array('setid' => $setid)), _FXEDIT);
             $options[] = $output->URL(pnModURL('feproc', 'admin', 'deleteset',
-                array('setid' => $item['setid'])), _FXDELETE);
+                array('setid' => $setid)), _FXDELETE);
             $options[] = $output->URL(pnModURL('feproc', 'admin', 'viewstages',
-                array('setid' => $item['setid'])), 'Show Stages');
+                array('setid' => $setid)), 'Show Stages');
 
             // Provide 'run stage' links if there is a default starting stage.
             if ($item['startstageid'])
             {
                 $options[] = $output->URL(
                     pnModAPIFunc('feproc', 'user', 'stageurl',
-                        array('setid' => $item['setid'])
+                        array('setid' => setid)
                     ), 'Start'
                 );
 
                 $options[] = $output->URL(
                     pnModAPIFunc('feproc', 'user', 'stageurl',
-                        array('setid' => $item['setid'], 'reset' => '1')
+                        array('setid' => setid, 'reset' => '1')
                     ), 'Restart'
                 );
             }

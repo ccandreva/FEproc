@@ -60,7 +60,7 @@ function feproc_adminapi_createset($args)
 
     $obj = array ('name' => $name, 'description' => $description, 'type' => 'set');
     DBUtil::insertObject($obj, 'feproc_workflow');
-    $setid = $obj['setid'];
+    $setid = $obj['id'];
 
     // We don't have the object ID until after it is created,
     // so we need to update the setid with the object id.

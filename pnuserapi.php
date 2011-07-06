@@ -1,30 +1,34 @@
 <?php
-// ----------------------------------------------------------------------
-// FEproc - Mail template backend module for FormExpress for
-// POST-NUKE Content Management System
-// Copyright (C) 2003 by Jason Judge
-// ----------------------------------------------------------------------
-// Based on:
-// PHP-NUKE Web Portal System - http://phpnuke.org/
-// ----------------------------------------------------------------------
-// LICENSE
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License (GPL)
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WIthOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// To read the license please visit http://www.gnu.org/copyleft/gpl.html
-// ----------------------------------------------------------------------
-// Original Author of file: Jason Judge.
-// Based on template by Jim MacDonald.
-// Current Maintainer of file: Klavs Klavsen <kl-feproc@vsen.dk>
-// ----------------------------------------------------------------------
+/**
+ * FEproc - Mail template backend module for FormExpress for 
+ *   Zikula Content Management System
+ * 
+ * @copyrightt (C) 2002 by Jason Judge, 2011 Chris Candreva
+ * @Version $Id:                                              $
+ * @license GNU/GPL - http://www.gnu.org/copyleft/gpl.html
+ * @package FEproc
+ *
+ *
+ * LICENSE
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License (GPL)
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WIthOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * To read the license please visit http://www.gnu.org/copyleft/gpl.html
+ * ----------------------------------------------------------------------
+ * Original Author of file: Jason Judge.
+ * Based on template by Jim MacDonald.
+ * Current Maintainer of file: Chris Candreva <chris@westnet.com>
+ * ----------------------------------------------------------------------
+ * 
+ */
 
 /**
  * Count the number of workflow sets available.
@@ -34,37 +38,15 @@
 function feproc_userapi_countsets()
 {
     // Early security check.
-    if (!pnSecAuthAction(0, 'FEproc::', '::', ACCESS_READ))
-    {
-        return $templates;
+   if (!SecurityUtil::checkPermission ('FEproc::', '::', ACCESS_READ)) {
+        return LogUtil::registerPermissionError();
     }
 
-    // Get datbase setup.
-    list($dbconn) = pnDBGetConn();
     $pntable = pnDBGetTables();
-
-    $wfTable = $pntable['feproc_workflow'];
     $wfColumn = $pntable['feproc_workflow_column'];
+    $where = "$wfColumn[type] = 'set'";
+    return DBUtil::selectObjectCount('feproc_workflow', $where, 'id', '');
 
-    $sql = "SELECT COUNT(*) FROM $wfTable WHERE $wfColumn[type] = 'set'";
-
-    $result = $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an appropriate
-    // error message and return
-    if ($dbconn->ErrorNo() != 0)
-    {
-        pnSessionSetVar('errormsg', _FXGETFAILED . ' ' . $sql);
-        return false;
-    }
-
-    list($count) = $result->fields;
-
-    // All successful database queries produce a result set, and that result
-    // set should be closed when it has been finished with
-    $result->Close();
-
-    return $count;
 }
 
 /**
@@ -75,44 +57,23 @@ function feproc_userapi_countsets()
 function feproc_userapi_countstages($args)
 {
     // Early security check.
-    if (!pnSecAuthAction(0, 'FEproc::', '::', ACCESS_READ))
-    {
-        return $templates;
+   if (!SecurityUtil::checkPermission ('FEproc::', '::', ACCESS_READ)) {
+        return LogUtil::registerPermissionError();
     }
 
-    extract($args);
-
-    if (!isset($setid) || !is_numeric($setid))
+    if (isset($args['setid']) && is_numeric($args['setid']))
     {
+        $setid = $args['setid'];
+    } else {
         $setid = 0;
     }
+    
+    $table = pnDBGetTables();
+    $wfColumn = $table['feproc_workflow_column'];
+    $where = "$wfColumn[type] = 'set'";
+    $where = "$wfColumn[type] != 'set' AND $wfColumn[setid] = $setid";
+    return DBUtil::selectObjectCount('feproc_workflow', $where, 'id', '');
 
-    // Get datbase setup.
-    list($dbconn) = pnDBGetConn();
-    $pntable = pnDBGetTables();
-
-    $wfTable = $pntable['feproc_workflow'];
-    $wfColumn = $pntable['feproc_workflow_column'];
-
-    $sql = "SELECT COUNT(*) FROM $wfTable WHERE $wfColumn[type] <> 'set' AND $wfColumn[setid] = " . pnVarPrepForStore($setid);
-
-    $result = $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an appropriate
-    // error message and return
-    if ($dbconn->ErrorNo() != 0)
-    {
-        pnSessionSetVar('errormsg', _FXGETFAILED . ' ' . $sql);
-        return false;
-    }
-
-    list($count) = $result->fields;
-
-    // All successful database queries produce a result set, and that result
-    // set should be closed when it has been finished with
-    $result->Close();
-
-    return $count;
 }
 
 /**
@@ -123,6 +84,10 @@ function feproc_userapi_countstages($args)
  */
 function feproc_userapi_getallsets($args)
 {
+    // Early security check.
+   if (!SecurityUtil::checkPermission ('FEproc::', '::', ACCESS_READ)) {
+        return LogUtil::registerPermissionError();
+    }
     // Get arguments from argument array.
     extract($args);
 
@@ -141,74 +106,47 @@ function feproc_userapi_getallsets($args)
 
     $sets = array();
 
-    // Early security check.
-    if (!pnSecAuthAction(0, 'FEproc::', "::", ACCESS_READ))
-    {
-        return false;
-    }
-
     // Get datbase setup
-    list($dbconn) = pnDBGetConn();
-    $pntable = pnDBGetTables();
+    $table = pnDBGetTables();
 
-    $wfTable = $pntable['feproc_workflow'];
-    $wfColumn = $pntable['feproc_workflow_column'];
-
-    $sql = buildsimplequery(
-        'feproc_workflow',
-        array('id','name','description', 'successid'),
-        "$wfColumn[type] = 'set'", // where
-        "$wfColumn[name]", // order
-        $numitems,
-        $startnum
-    );
-
-    $result = $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an appropriate
-    // error message and return
-    if ($dbconn->ErrorNo() != 0)
-    {
-        pnSessionSetVar('errormsg', _FXGETFAILED . ' ' . $sql);
-        return false;
-    }
-
-    for (; !$result->EOF; $result->MoveNext())
-    {
-        // Get the name of the start stage.
-        if ($result->fields[3])
-        {
-            $startstage = pnModAPIFunc('feproc', 'user', 'getstage',
-                          array('stageid' => $result->fields[3]));
-        } else {
-            $startstage['name'] = null;
-        }
-
-        $handlers[] = array(
-            'setid' => $result->fields[0],
-            'name' => $result->fields[1],
-            'description' => $result->fields[2],
-            'startstageid' => $result->fields[3],
-            'startstagename' => $startstage['name']
+    $wfTable = $table['feproc_workflow'];
+    $wfColumn = $table['feproc_workflow_column'];
+    $where = "tbl.$wfColumn[type] = 'set'";
+    // Join to get name of start stage.
+    $joinInfo = array();
+            $joinInfo[] = array(
+            'join_table'    => 'feproc_workflow',
+            'join_field'    => 'name',
+            'object_field_name' => 'startstagename',
+            'compare_field_table'   => 'successid',
+            'compare_field_join'   => 'id',
         );
+
+    $sets = DBUtil::selectExpandedObjectArray('feproc_workflow', $joinInfo, $where, 'name', $startnum, $numitems );
+
+
+    // Rename successid to startstageid
+    foreach ($sets as &$set)
+    {
+        $set['startstageid'] = $set['successid'];
     }
-
-    // All successful database queries produce a result set, and that result
-    // set should be closed when it has been finished with
-    $result->Close();
-
-    return $handlers;
+       
+    return $sets;
 }
 
 /**
- * Get summary of all sets.
+ * Get a single set.
  * @returns associative array
  *          (setid,name,description,startstageid,startstagename)
  * @return set specification
  */
 function feproc_userapi_getset($args)
 {
-    // Get arguments from argument array.
+    // Early security check.
+   if (!SecurityUtil::checkPermission ('FEproc::', '::', ACCESS_READ)) {
+        return LogUtil::registerPermissionError();
+    }
+ // Get arguments from argument array.
     extract($args);
 
     // Early security check.
@@ -228,46 +166,20 @@ function feproc_userapi_getset($args)
 
     $wfTable = $pntable['feproc_workflow'];
     $wfColumn = $pntable['feproc_workflow_column'];
+    $set = DBUtil::selectObjectByID('feproc_workflow', $setid);
 
-    $sql = buildsimplequery(
-        'feproc_workflow',
-        array('id','name','description', 'successid'),
-        "($wfColumn[type] = 'set' AND $wfColumn[id] = '".$setid."')" // where
-    );
-
-    $result = $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an appropriate
-    // error message and return
-    if ($dbconn->ErrorNo() != 0)
+    // Get the name of the start stage.
+    if ($set['successid'])
     {
-        pnSessionSetVar('errormsg', _FXGETFAILED . ' ' . $sql);
-        return false;
+        $startstage = pnModAPIFunc('feproc', 'user', 'getstage',
+                      array('stageid' => $set['successid']));
+        $set['startstage'] = $startstage['name'];
+        $set['startstageid'] = $set['successid'];
+    } else {
+        $set['startstage'] = null;
     }
-
-    for (; !$result->EOF; $result->MoveNext())
-    {
-        // Get the name of the start stage.
-        if ($result->fields[3])
-        {
-            $startstage = pnModAPIFunc('feproc', 'user', 'getstage',
-                          array('stageid' => $result->fields[3]));
-        } else {
-            $startstage['name'] = null;
-        }
-
-        $set = array(
-            'setid' => $result->fields[0],
-            'name' => $result->fields[1],
-            'description' => $result->fields[2],
-            'startstageid' => $result->fields[3],
-            'startstagename' => $startstage['name']
-        );
-    }
-
-    // All successful database queries produce a result set, and that result
-    // set should be closed when it has been finished with
-    $result->Close();
+    // Handle legacy name
+    $set['setid'] = $set['id'];
 
     return $set;
 }
@@ -289,32 +201,29 @@ function feproc_userapi_getstage($args)
     // Get arguments from argument array.
     extract($args);
 
-    list($dbconn) = pnDBGetConn();
     $pntable = pnDBGetTables();
-
-    $wfTable = $pntable['feproc_workflow'];
     $wfColumn = $pntable['feproc_workflow_column'];
 
     $where = ' 1=1';
 
     if (isset($stageid) && is_numeric($stageid))
     {
-        $where = $where . " AND $wfColumn[id] = " . pnVarPrepForStore($stageid) . " ";
+        $where = $where . " AND $wfColumn[id] = $stageid";
     }
 
     if (isset($setid) && is_numeric($setid))
     {
-        $where = $where . " AND $wfColumn[setid] = " . pnVarPrepForStore($setid) . " ";
+        $where = $where . " AND $wfColumn[setid] = $setid";
     }
 
     if (isset($handlerid) && is_numeric($handlerid))
     {
-        $where = $where . " AND $wfColumn[handlerid] = " . pnVarPrepForStore($handlerid) . " ";
+        $where = $where . " AND $wfColumn[handlerid] = $handlerid";
     }
 
     if (isset($name))
     {
-        $where = $where . " AND $wfColumn[name] = '" . pnVarPrepForStore($name) . "' ";
+        $where = $where . " AND $wfColumn[name] = '$name'";
     }
 
     if (isset($set))
@@ -340,23 +249,8 @@ function feproc_userapi_getstage($args)
         {
             // We have just been given the set to look at:
             // get default starting stages for each set.
-            $sql = "SELECT $wfColumn[successid]
-                  FROM     $wfTable
-                  WHERE    $wfColumn[type] = 'set'";
-
-            $result = $dbconn->Execute($sql);
-            
-            if ($dbconn->ErrorNo() != 0)
-            {
-                pnSessionSetVar('errormsg', _FXGETFAILED);
-                return false;
-            }
-
-            $startstages = Array();
-            for (; !$result->EOF; $result->MoveNext())
-            {
-                $startstages[] = $result->fields[0];
-            }
+            $startstages = DBUtil::selectFieldArray('feproc_workflow','successid', 
+                "$wfColumn[type] = 'set' AND $wfColumn[successid] > 0");
 
             if (!empty($startstages))
             {
@@ -364,52 +258,9 @@ function feproc_userapi_getstage($args)
             }
         }
     }
-
-    $sql = "SELECT $wfColumn[id],
-                   $wfColumn[name],
-                   $wfColumn[description],
-                   $wfColumn[type],
-                   $wfColumn[attributes],
-                   $wfColumn[setid],
-                   $wfColumn[successid],
-                   $wfColumn[failureid],
-                   $wfColumn[handlerid],
-                   $wfColumn[secure],
-                   $wfColumn[startstage]
-          FROM     $wfTable
-          WHERE    $where";
-
-    $result = $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an appropriate
-    // error message and return
-    if ($dbconn->ErrorNo() != 0)
-    {
-        pnSessionSetVar('errormsg', _FXGETFAILED . ' ' . $sql);
-        return false;
-    }
-
-    if ($result->EOF)
-    {
-        $stage = false;
-    } else {
-        $stage = array('id' => $result->fields[0],
-                       'stageid' => $result->fields[0],
-                       'name' => $result->fields[1],
-                       'description' => $result->fields[2],
-                       'type' => $result->fields[3],
-                       'attributes' => unserialize($result->fields[4]),
-                       'setid' => $result->fields[5],
-                       'successid' => $result->fields[6],
-                       'failureid' => $result->fields[7],
-                       'handlerid' => $result->fields[8],
-                       'secure' => $result->fields[9],
-                       'startstage' => $result->fields[10]);
-    }
-
-    // All successful database queries produce a result set, and that result
-    // set should be closed when it has been finished with
-    $result->Close();
+    $stages = DBUtil::selectObjectArray('feproc_workflow', $where);
+    $stage = $stages[0];
+    $stage['stageid'] = $stage['id'];
 
     return $stage;
 }
@@ -423,6 +274,10 @@ function feproc_userapi_getstage($args)
  */
 function feproc_userapi_getallstages($args)
 {
+    // Early security check.
+   if (!SecurityUtil::checkPermission ('FEproc::', '::', ACCESS_READ)) {
+        return LogUtil::registerPermissionError();
+    }
     // Get arguments from argument array.
     extract($args);
 
@@ -439,85 +294,46 @@ function feproc_userapi_getallstages($args)
         $numitems = 999999;
     }
 
-    $sets = array();
+    $table = pnDBGetTables();
+    $wfColumn = $table['feproc_workflow_column'];
 
-    // Early security check.
-    if (!pnSecAuthAction(0, 'FEproc::', "::", ACCESS_READ))
-    {
-        return false;
-    }
-
-    // Get database setup.
-    list($dbconn) = pnDBGetConn();
-    $pntable = pnDBGetTables();
-
-    $wfTable = $pntable['feproc_workflow'];
-    $wfColumn = $pntable['feproc_workflow_column'];
-
-    $where = " $wfColumn[type] <> 'set' ";
-
+    $where = " tbl.$wfColumn[type] != 'set' ";
     if ($setid && is_numeric($setid))
     {
-        $where .= " AND $wfColumn[setid] = $setid";
+        $where .= " AND tbl.$wfColumn[setid] = $setid";
     }
 
-    $sql = buildsimplequery(
-        'feproc_workflow',
-        array('id', 'name', 'description', 'type', 'successid', 'failureid', 'setid', 'startstage'),
-        $where, // where
-        "id", // order
-        $numitems,
-        $startnum
-    );
-
-    $result = $dbconn->Execute($sql);
-
-    // Check for an error with the database code, and if so set an appropriate
-    // error message and return
-    if ($dbconn->ErrorNo() != 0)
-    {
-        pnSessionSetVar('errormsg', _FXGETFAILED . ' ' . $sql);
-        return false;
-    }
-
-    for (; !$result->EOF; $result->MoveNext())
-    {
-        // Get the name of the success stage.
-        if ($result->fields[4])
-        {
-            $successstage = pnModAPIFunc('feproc', 'user', 'getstage',
-                array('stageid' => $result->fields[4]));
-        } else {
-            $successstage['name'] = null;
-        }
-
-        // Get the name of the failure stage.
-        if ($result->fields[5])
-        {
-            $failurestage = pnModAPIFunc('feproc', 'user', 'getstage',
-                array('stageid' => $result->fields[5]));
-        } else {
-            $failurestage['name'] = null;
-        }
-
-        $handlers[] = array(
-            'stageid' => $result->fields[0],
-            'name' => $result->fields[1],
-            'description' => $result->fields[2],
-            'type' => $result->fields[3],
-            'successid' => $result->fields[4],
-            'successname' => $successstage['name'],
-            'failureid' => $result->fields[5],
-            'failurename' => $failurestage['name'],
-            'setid' => $result->fields[6],
-            'startstage' => $result->fields[7]
+    $joinInfo = array();
+            $joinInfo[] = array(
+            'join_table'    => 'feproc_workflow',
+            'join_field'    => 'name',
+            'object_field_name' => 'startstagename',
+            'compare_field_table'   => 'successid',
+            'compare_field_join'   => 'id',
         );
+
+    $joinInfo = array(
+            array(
+            'join_table'    => 'feproc_workflow',
+            'join_field'    => 'name',
+            'object_field_name' => 'successname',
+            'compare_field_table'   => 'successid',
+            'compare_field_join'   => 'id',
+            ),
+            array(
+            'join_table'    => 'feproc_workflow',
+            'join_field'    => 'name',
+            'object_field_name' => 'failurename',
+            'compare_field_table'   => 'failureid',
+            'compare_field_join'   => 'id',
+            ),
+        );
+    $stages = DBUtil::selectExpandedObjectArray('feproc_workflow', $joinInfo, $where, 'id', $startnum, $numitems );
+    foreach ($stages as &$stage) {
+        $stage['stageid'] = $stage['id'];
     }
-
-    // Close result set.
-    $result->Close();
-
-    return $handlers;
+    unset($stage);
+    return $stages;
 }
 
 
@@ -536,13 +352,6 @@ function feproc_userapi_stageurl($args)
 
     if (empty($stageid) && empty($setid))
     {
-        return false;
-    }
-
-    // Get the feproc workflow API.
-    if (!pnModAPILoad('feproc', 'user'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
         return false;
     }
 
@@ -607,15 +416,15 @@ function feproc_userapi_stageurl($args)
     // change the current protocol: it returns a full URL with the
     // current protocol intact.
 
-    if (eregi('^http:', $url) && $stage['secure'])
+    if (preg_match('/^http:/i', $url) && $stage['secure'])
     {
         // Needs to be secure but is not yet.
-        $url = eregi_replace('^http:', 'https:', $url);
+        $url = preg_replace('/^http:/i', 'https:', $url);
     }
-    elseif (eregi('^https:', $url) && !$stage['secure'])
+    elseif (preg_match('/^https:/i', $url) && !$stage['secure'])
     {
         // Is secure but no need for it.
-        $url = eregi_replace('^https:', 'http:', $url);
+        $url = preg_replace('/^https:/i', 'http:', $url);
     }
 
     return $url;
@@ -653,30 +462,6 @@ function feproc_userapi_nextstage($args)
     );
 
     // Get the current feproc session so we can validate the stage we just came from.
-
-    // Get the feproc session object.
-    if (!pnModAPILoad('feproc', 'session'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'admin', 'view'));
-        return false;
-    }
-
-    // Get the feproc workflow API.
-    if (!pnModAPILoad('feproc', 'user'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'admin', 'view'));
-        return false;
-    }
-
-    // Get the feproc handler API.
-    if (!pnModAPILoad('feproc', 'handleruser'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'admin', 'view'));
-        return false;
-    }
 
     $sessiondata = new feprocSession();
 
@@ -793,19 +578,6 @@ function feproc_userapi_nextstage($args)
                 break;
             }
 
-            // Load the handler API
-            if (!pnModAPILoad($handler['modulename'], $handler['apiname']))
-            {
-                // TODO: proper error message.
-                $nextstage = Array(
-                    'action' => 'error',
-                    'url' => false,
-                    'text' => "Failed to load handler API ($handler[modulename], $handler[apiname]).",
-                    'complete' => true
-                );
-                break;
-            }
-
             // Call the handler processing function.
             $handlerReturn = pnModAPIFunc(
                 $handler['modulename'], $handler['apiname'], $handler['apifunc'],
@@ -894,27 +666,6 @@ function feproc_userapi_handlerdata($args)
     extract($args);
 
     $handlerinfo = Array();
-
-    // Get the feproc session object.
-    if (!pnModAPILoad('feproc', 'session'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        return false;
-    }
-
-    // Get the feproc workflow API.
-    if (!pnModAPILoad('feproc', 'user'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        return false;
-    }
-
-    // Get the feproc handler API.
-    if (!pnModAPILoad('feproc', 'handleruser'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        return false;
-    }
 
     // Form data.
     $sessiondata = new feprocSession();
