@@ -250,7 +250,7 @@ function feproc_user_formexpress($args)
         // Display the text. This is a templated output.
         $render = pnRender::getInstance('feproc');
         $render->assign('text', $nextstage['text']);
-        return $render->fetch('feproc_user_error.html');
+        return $render->fetch('feproc_user_error.tpl');
     }
     
 
