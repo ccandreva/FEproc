@@ -261,6 +261,7 @@ function feproc_userapi_getstage($args)
     $stages = DBUtil::selectObjectArray('feproc_workflow', $where);
     $stage = $stages[0];
     $stage['stageid'] = $stage['id'];
+    $stage['attributes'] = unserialize($stage['attributes']);
 
     return $stage;
 }
