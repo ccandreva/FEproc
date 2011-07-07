@@ -1,32 +1,34 @@
 <?php
-// ----------------------------------------------------------------------
-// FEproc - Mail template backend module for FormExpress for
-// POST-NUKE Content Management System
-// Copyright (C) 2003 by Jason Judge
-// ----------------------------------------------------------------------
-// Based on:
-// PHP-NUKE Web Portal System - http://phpnuke.org/
-// ----------------------------------------------------------------------
-// LICENSE
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License (GPL)
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WIthOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// To read the license please visit http://www.gnu.org/copyleft/gpl.html
-// ----------------------------------------------------------------------
-// Original Author of file: Jason Judge.
-// Based on template by Jim MacDonald.
-// Current Maintainer of file: Klavs Klavsen <kl-feproc@vsen.dk>
-//
-// ----------------------------------------------------------------------
-
+/**
+ * FEproc - Mail template backend module for FormExpress for 
+ *   Zikula Content Management System
+ * 
+ * @copyrightt (C) 2002 by Jason Judge, 2011 Chris Candreva
+ * @Version $Id:                                              $
+ * @license GNU/GPL - http://www.gnu.org/copyleft/gpl.html
+ * @package FEproc
+ *
+ *
+ * LICENSE
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License (GPL)
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WIthOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * To read the license please visit http://www.gnu.org/copyleft/gpl.html
+ * ----------------------------------------------------------------------
+ * Original Author of file: Jason Judge.
+ * Based on template by Jim MacDonald.
+ * Current Maintainer of file: Chris Candreva <chris@westnet.com>
+ * ----------------------------------------------------------------------
+ * 
+ */
 
 /**
  * the main administration function
@@ -65,13 +67,6 @@ function feproc_admin_viewsets()
         return LogUtil::registerPermissionError();
     }
 
-    // Load API. If the API fails to load an appropriate
-    // error message is posted and the function returns
-    if (!pnModAPILoad('feproc', 'admin')) {
-        $output->Text(_FXMODLOADFAILED);
-        return $output->GetOutput();
-    }
-
     // Create output object.
     $output = new pnHTML();
 
@@ -80,90 +75,15 @@ function feproc_admin_viewsets()
     $output->Text(feproc_adminmenu());
     $output->SetInputMode(_PNH_PARSEINPUT);
 
-    // Load workflow API.
-    if (!pnModAPILoad('feproc', 'user')) {
-        $output->Text(_FXMODLOADFAILED);
-        return $output->GetOutput();
-    }
-
     // The API function is called.
     $items = pnModAPIFunc('feproc', 'user', 'getallsets',
                           array('startnum' => $startnum,
                                 'numitems' => pnModGetVar('FEproc', 'itemsperpage')));
-    // Start output table
-    $output->TableStart('Sets', //TODO
-                        array(_FXNAMEID,
-                              _FXDESCRIPTION,
-                              'ID: Start Stage', // TODO
-                              _FXOPTIONS), 1);
 
-    if (is_array($items))
-    {
-        foreach ($items as $item)
-        {
-            $row = array();
-            $setid = $item['id'];
+    $render = pnRender::getInstance('feproc');
+    $render->assign('items',$items);
+    return $render->fetch('feproc_admin_viewsets.tpl');
 
-            // Output whatever we found
-            $row[] = $setid. " : " . $item['name'];
-            $row[] = $item['description'];
-
-            if ($item['startstageid'])
-            {
-                $row[] = $item['startstageid'] . ': ' . $item['startstagename'];
-            } else {
-                $row[] = null;
-            }
-
-            // Options for the item
-            $options = array();
-            $output->SetOutputMode(_PNH_RETURNOUTPUT);
-            $options[] = $output->URL(pnModURL('feproc', 'admin', 'modifyset',
-                array('setid' => $setid)), _FXEDIT);
-            $options[] = $output->URL(pnModURL('feproc', 'admin', 'deleteset',
-                array('setid' => $setid)), _FXDELETE);
-            $options[] = $output->URL(pnModURL('feproc', 'admin', 'viewstages',
-                array('setid' => $setid)), 'Show Stages');
-
-            // Provide 'run stage' links if there is a default starting stage.
-            if ($item['startstageid'])
-            {
-                $options[] = $output->URL(
-                    pnModAPIFunc('feproc', 'user', 'stageurl',
-                        array('setid' => setid)
-                    ), 'Start'
-                );
-
-                $options[] = $output->URL(
-                    pnModAPIFunc('feproc', 'user', 'stageurl',
-                        array('setid' => setid, 'reset' => '1')
-                    ), 'Restart'
-                );
-            }
-
-            $options = join(' | ', $options);
-            $output->SetInputMode(_PNH_VERBATIMINPUT);
-            $row[] = $output->Text($options);
-            $output->SetOutputMode(_PNH_KEEPOUTPUT);
-            $output->TableAddRow($row, 'left');
-            $output->SetInputMode(_PNH_PARSEINPUT);
-        }
-    }
-
-    $output->TableEnd();
-
-    // Call the pnHTML helper function to produce a pager in case of there
-    // being many items to display.
-    $output->Pager($startnum,
-                    pnModAPIFunc('feproc', 'user', 'countsets'),
-                    pnModURL('feproc', 'admin', 'viewsets',
-                            array('startnum' => '%%')),
-                    pnModGetVar('FEproc', 'itemsperpage'));
-
-    $modinfo = pnModGetInfo(pnModGetIDFromName('feproc'));
-    
-    // Return the output that has been generated by this function
-    return $output->GetOutput();
 }
 
 
