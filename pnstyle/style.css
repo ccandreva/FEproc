@@ -1,0 +1,15 @@
+table.feproc {
+    width: 100%;
+    border: 1px solid black;
+    /* border-collapse: collapse; */
+}
+
+table.feproc tr,
+table.feproc td {
+    border: 1px solid black;
+}
+
+table.feproc th
+{
+    border: 2px solid black;
+}
