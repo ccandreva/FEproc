@@ -404,7 +404,7 @@ function feproc_adminapi_getlinks()
 {
     $dom = ZLanguage::getModuleDomain('feproc');
     return array(
-      array('url' => pnModURL('FEproc', 'admin', 'vewsets'), 'text' => __('Show Sets', $dom), 'id' => 'show_sets'),
+      array('url' => pnModURL('FEproc', 'admin', 'viewsets'), 'text' => __('Show Sets', $dom), 'id' => 'show_sets'),
       array('url' => pnModURL('FEproc', 'admin', 'newset'), 'text' => __('New Set', $dom), 'id' => 'new_set'),
       array('url' => pnModURL('FEproc', 'handleradmin', 'view'), 'text' => __('Show handlers', $dom), 'id' => 'show_handlers'),
       array('url' => pnModURL('FEproc', 'handleradmin', 'new'), 'text' => __('Import handlers', $dom), 'id' => 'import_handlers'),
