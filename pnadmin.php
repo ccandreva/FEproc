@@ -32,6 +32,7 @@
 
 Loader::requireOnce('includes/pnForm.php');
 require_once('pnclass/newsethandler.php');
+require_once('pnclass/modifyconfighandler.php');
 
 
 /**
@@ -88,7 +89,9 @@ function feproc_admin_viewsets()
  */
 function feproc_admin_newset()
 {
-
+   if (!SecurityUtil::checkPermission ('FEproc::Set', '::', ACCESS_ADD)) {
+        return LogUtil::registerPermissionError();
+    }
     $render = FormUtil::newpnForm('feproc');
     $formobj = new feproc_admin_newsetHandler();
     return $render->pnFormExecute('feproc_admin_newset.tpl', $formobj);
@@ -1225,245 +1228,13 @@ function feproc_admin_deletestage($args)
  */
 function feproc_admin_modifyconfig()
 {
-    // Create output object
-    $output = new pnHTML();
-
-    // Security check - important to do this as early as possible to avoid
-    // potential security holes or just too much wasted processing
-
-    if (!pnSecAuthAction(0, 'FEproc::', '::', ACCESS_ADMIN)) {
-        $output->Text(_FXNOAUTH);
-        return $output->GetOutput();
+   if (!SecurityUtil::checkPermission ('FEproc::Set', '::', ACCESS_ADMIN)) {
+        return LogUtil::registerPermissionError();
     }
-
-    // Add menu to output.
-    $output->SetInputMode(_PNH_VERBATIMINPUT);
-    $output->Text(feproc_adminmenu());
-    $output->SetInputMode(_PNH_PARSEINPUT);
-
-    // Title.
-    $output->Title('FEproc Configuration');
-
-    // Start form.
-    $output->FormStart(pnModURL('feproc', 'admin', 'updateconfig'));
-
-
-    // Add an authorisation ID.
-    $output->FormHidden('authid', pnSecGenAuthKey());
-
-    // Start the table that holds the information to be modified.
-    $output->TableStart();
-
-    // Admin options.
-    $row = array();
-    $output->SetOutputMode(_PNH_RETURNOUTPUT);
-    $row[] = $output->BoldText('Admin Options');
-    $row[] = null;
-    $output->SetOutputMode(_PNH_KEEPOUTPUT);
-    $output->SetInputMode(_PNH_VERBATIMINPUT);
-    $output->TableAddrow($row, 'left');
-    $output->SetInputMode(_PNH_PARSEINPUT);
-
-    // Number of items to display per page.
-    $row = array();
-    $output->SetOutputMode(_PNH_RETURNOUTPUT);
-    $row[] = $output->Text(pnVarPrepForDisplay('Items Per Page'));
-    $row[] = $output->FormText('itemsperpage', pnModGetVar('FEproc', 'itemsperpage'), 3, 3);
-    $output->SetOutputMode(_PNH_KEEPOUTPUT);
-    $output->SetInputMode(_PNH_VERBATIMINPUT);
-    $output->TableAddrow($row, 'left');
-    $output->SetInputMode(_PNH_PARSEINPUT);
-
-    // Handler string attribute maximum length.
-    $row = array();
-    $output->SetOutputMode(_PNH_RETURNOUTPUT);
-    $row[] = $output->Text(pnVarPrepForDisplay('String Attribute Max Length'));
-    $row[] = $output->FormText('attrstringlen', pnModGetVar('FEproc', 'attrstringlen'), 3, 3);
-    $output->SetOutputMode(_PNH_KEEPOUTPUT);
-    $output->SetInputMode(_PNH_VERBATIMINPUT);
-    $output->TableAddrow($row, 'left');
-    $output->SetInputMode(_PNH_PARSEINPUT);
-
-    // Handler string attribute field size.
-    $row = array();
-    $output->SetOutputMode(_PNH_RETURNOUTPUT);
-    $row[] = $output->Text(pnVarPrepForDisplay('String Attribute Field Size'));
-    $row[] = $output->FormText('attrstringsize', pnModGetVar('FEproc', 'attrstringsize'), 3, 3);
-    $output->SetOutputMode(_PNH_KEEPOUTPUT);
-    $output->SetInputMode(_PNH_VERBATIMINPUT);
-    $output->TableAddrow($row, 'left');
-    $output->SetInputMode(_PNH_PARSEINPUT);
-
-    // Handler text attribute field size.
-    $row = array();
-    $output->SetOutputMode(_PNH_RETURNOUTPUT);
-    $row[] = $output->Text(pnVarPrepForDisplay('Text Attribute Field Size (rows x cols)'));
-    $row[] = $output->FormText('attrtextrows', pnModGetVar('FEproc', 'attrtextrows'), 3, 3)
-		. ' x ' . $output->FormText('attrtextcols', pnModGetVar('FEproc', 'attrtextcols'), 3, 3);
-    $output->SetOutputMode(_PNH_KEEPOUTPUT);
-    $output->SetInputMode(_PNH_VERBATIMINPUT);
-    $output->TableAddrow($row, 'left');
-    $output->SetInputMode(_PNH_PARSEINPUT);
-
-    // Runtime/User options.
-    $row = array();
-    $output->SetOutputMode(_PNH_RETURNOUTPUT);
-    $row[] = $output->BoldText('Runtime/User Options');
-    $row[] = null;
-    $output->SetOutputMode(_PNH_KEEPOUTPUT);
-    $output->SetInputMode(_PNH_VERBATIMINPUT);
-    $output->TableAddrow($row, 'left');
-    $output->SetInputMode(_PNH_PARSEINPUT);
-
-    // Flag indicates whether unmatched substitution variables are removed.
-    $row = array();
-    $output->SetOutputMode(_PNH_RETURNOUTPUT);
-    $row[] = $output->Text(pnVarPrepForDisplay('Share Item Values Between Different Forms'));
-    $row[] = $output->FormCheckbox('shareformitems', pnModGetVar('FEproc', 'shareformitems'), '1');
-    $output->SetOutputMode(_PNH_KEEPOUTPUT);
-    $output->SetInputMode(_PNH_VERBATIMINPUT);
-    $output->TableAddrow($row, 'left');
-    $output->SetInputMode(_PNH_PARSEINPUT);
-
-    // Flag indicates whether unmatched substitution variables are removed.
-    $row = array();
-    $output->SetOutputMode(_PNH_RETURNOUTPUT);
-    $row[] = $output->Text(pnVarPrepForDisplay('Hide Unmatched Substitution Variables'));
-    $row[] = $output->FormCheckbox('removeunmatched', pnModGetVar('FEproc', 'removeunmatched'), '1');
-    $output->SetOutputMode(_PNH_KEEPOUTPUT);
-    $output->SetInputMode(_PNH_VERBATIMINPUT);
-    $output->TableAddrow($row, 'left');
-    $output->SetInputMode(_PNH_PARSEINPUT);
-
-    // Flag indicates whether the trace stack should be kept of processed stages.
-    $row = array();
-    $output->SetOutputMode(_PNH_RETURNOUTPUT);
-    $row[] = $output->Text(pnVarPrepForDisplay('Enable Trace Stack'));
-    $row[] = $output->FormCheckbox('tracestack', pnModGetVar('FEproc', 'tracestack'), '1');
-    $output->SetOutputMode(_PNH_KEEPOUTPUT);
-    $output->SetInputMode(_PNH_VERBATIMINPUT);
-    $output->TableAddrow($row, 'left');
-    $output->SetInputMode(_PNH_PARSEINPUT);
-
-    // Session timeout, minutes.
-    $row = array();
-    $output->SetOutputMode(_PNH_RETURNOUTPUT);
-    $row[] = $output->Text(pnVarPrepForDisplay('Minutes Before Session Is Timed Out'));
-    $row[] = $output->FormText('sessiontimeout', pnModGetVar('FEproc', 'sessiontimeout'), 6, 6);
-    $output->SetOutputMode(_PNH_KEEPOUTPUT);
-    $output->SetInputMode(_PNH_VERBATIMINPUT);
-    $output->TableAddrow($row, 'left');
-    $output->SetInputMode(_PNH_PARSEINPUT);
-
-	$output->TableEnd();
-
-    // End form
-    $output->Linebreak(2);
-    $output->FormSubmit('Update');
-    $output->FormEnd();
-    
-    // Return the output that has been generated by this function
-    return $output->GetOutput();
+    $render = FormUtil::newpnForm('feproc');
+    $formobj = new feproc_admin_modifyconfigHandler();
+    return $render->pnFormExecute('feproc_admin_modifyconfig.tpl', $formobj);
 }
-
-/**
- * This is a standard function to update the configuration parameters of the
- * module given the information passed back by the modification form
- */
-function feproc_admin_updateconfig()
-{
-    // Get parameters from whatever input we need.
-    list($itemsperpage, $removeunmatched,
-        $sessiontimeout, $tracestack,
-        $shareformitems,
-        $attrstringsize, $attrstringlen,
-        $attrtextrows, $attrtextcols) = pnVarCleanFromInput(
-        'itemsperpage', 'removeunmatched',
-        'sessiontimeout', 'tracestack',
-        'shareformitems',
-        'attrstringsize', 'attrstringlen',
-        'attrtextrows', 'attrtextcols'
-    );
-
-    // Confirm authorisation code.
-    if (!pnSecConfirmAuthKey()) {
-        pnSessionSetVar('errormsg', _BADAUTHKEY);
-        pnRedirect(pnModURL('FEproc', 'admin', 'view'));
-        return true;
-    }
-
-    // Update module variables.
-
-    // Timeout is defined in minutes.
-    // 0 is infinite; maximum value is 48 hours.
-    if (!isset($sessiontimeout) || $sessiontimeout < 0 || $sessiontimeout > 60*24*2) {
-        $sessiontimeout = 30;
-    }
-
-    if (!isset($itemsperpage) || $itemsperpage < 1 || $itemsperpage > 999) {
-        $itemsperpage = 30;
-    }
-
-	if (!isset($removeunmatched) || $removeunmatched < 0 || $removeunmatched > 1)
-	{
-		$removeunmatched = 0;
-	}
-
-	if (!isset($tracestack) || $tracestack < 0 || $tracestack > 1)
-	{
-		$tracestack = 0;
-	}
-
-	if (!isset($shareformitems) || $shareformitems < 0 || $shareformitems > 1)
-	{
-		$shareformitems = 0;
-	}
-
-	if (!isset($removeunmatched) || $removeunmatched < 0 || $removeunmatched > 1)
-	{
-		$removeunmatched = 0;
-	}
-
-	if (!isset($attrstringsize) || $attrstringsize < 1 || $attrstringsize > 200)
-	{
-		$attrstringsize = 64;
-	}
-
-	if (!isset($attrstringlen) || $attrstringlen < 1 || $attrstringlen > 400)
-	{
-		$attrstringlen = 200;
-	}
-
-	if (!isset($attrtextcols) || $attrtextcols < 1 || $attrtextcols > 400)
-	{
-		$attrtextcols = 40;
-	}
-
-	if (!isset($attrtextrows) || $attrtextrows < 1 || $attrtextrows > 400)
-	{
-		$attrtextrows = 6;
-	}
-
-    pnModSetVar('FEproc', 'itemsperpage', $itemsperpage);
-    pnModSetVar('FEproc', 'removeunmatched', $removeunmatched);
-    pnModSetVar('FEproc', 'sessiontimeout', $sessiontimeout);
-    pnModSetVar('FEproc', 'tracestack', $tracestack);
-    pnModSetVar('FEproc', 'shareformitems', $shareformitems);
-
-    pnModSetVar('FEproc', 'attrstringsize', $attrstringsize);
-    pnModSetVar('FEproc', 'attrstringlen', $attrstringlen);
-
-    pnModSetVar('FEproc', 'attrtextrows', $attrtextrows);
-    pnModSetVar('FEproc', 'attrtextcols', $attrtextcols);
-
-    // This function generated no output, and so now it is complete we redirect
-    // the user to an appropriate page for them to carry on their work
-    pnRedirect(pnModURL('FEproc', 'admin', 'modifyconfig'));
-
-    // Return
-    return true;
-}
-
 
 /**
  * Main administration menu
