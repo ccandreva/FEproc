@@ -98,7 +98,7 @@ function feproc_adminapi_updateset($args)
         pnSessionSetVar('errormsg', _FXMODARGSERROR);
         return false;
     }
-
+/*
     // The API function is called.
     $item = pnModAPIFunc('feproc', 'user', 'getset',
             array('setid' => $setid)
@@ -108,7 +108,7 @@ function feproc_adminapi_updateset($args)
         pnSessionSetVar('errormsg', 'No such set'); // TODO: what next?
         return false;
     }
-
+*/
     $wftable = $pntable['feproc_workflow'];
     $wfcolumn = &$pntable['feproc_workflow_column'];
 
@@ -116,7 +116,7 @@ function feproc_adminapi_updateset($args)
     $obj = array('id' => $setid, 'name' => $name, 'description' => $description,
             'successid' => $startstageid);
     DBUtil::updateObject($obj, 'feproc_workflow');
-
+/*
     // Now make sure the start stages are set if appropriate.
     if ($startstageid > 0)
     {
@@ -137,7 +137,7 @@ function feproc_adminapi_updateset($args)
                 AND     $wfcolumn[startstage] = 2";
         $result = DBUtil::executeSQL($sql);
     }
-
+*/
     // Let the calling process know that we have finished successfully
     return true;
 }

@@ -17,7 +17,7 @@
  * of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WIthOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
@@ -31,7 +31,7 @@
  */
 
 Loader::requireOnce('includes/pnForm.php');
-require_once('pnclass/newsethandler.php');
+require_once('pnclass/editsethandler.php');
 require_once('pnclass/modifyconfighandler.php');
 
 
@@ -93,8 +93,8 @@ function feproc_admin_newset()
         return LogUtil::registerPermissionError();
     }
     $render = FormUtil::newpnForm('feproc');
-    $formobj = new feproc_admin_newsetHandler();
-    return $render->pnFormExecute('feproc_admin_newset.tpl', $formobj);
+    $formobj = new feproc_admin_editsetHandler();
+    return $render->pnFormExecute('feproc_admin_editset.tpl', $formobj);
 
 }
 
@@ -107,56 +107,30 @@ function feproc_admin_newset()
  */
 function feproc_admin_modifyset($args)
 {
+    if (!SecurityUtil::checkPermission ('FEproc::', '::', ACCESS_EDIT)) {
+        return LogUtil::registerPermissionError();
+    }
+
     // Get parameters from whatever input we need.
-    $setid = pnVarCleanFromInput('setid');
-
-    extract($args);
-
-    // Create output object.
-    $output = new pnHTML();
-
-    // Security check.
-    if (!pnSecAuthAction(0, 'FEproc::', "::", ACCESS_EDIT))
-    {
-        pnSessionSetVar('errormsg', _FXNOAUTH);
-        pnRedirect(pnModURL('feproc', 'admin', 'view')); // TODO
-        return true;
-    }
-
-    // Load admin API.
-    if (!pnModAPILoad('feproc', 'admin'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'admin', 'view')); // TODO
-        return true;
-    }
-
-    // Load workflow user API.
-    if (!pnModAPILoad('feproc', 'user'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'admin', 'view')); // TODO
-        return true;
-    }
-
-    // Load handler user API.
-    if (!pnModAPILoad('feproc', 'handleruser'))
-    {
-        pnSessionSetVar('errormsg', _FXMODLOADFAILED);
-        pnRedirect(pnModURL('feproc', 'admin', 'view')); // TODO
-        return true;
-    }
+    $setid = FormUtil::getPassedValue('setid');
 
     // The API function is called.
     $item = pnModAPIFunc('feproc', 'user', 'getset', array('setid' => $setid));
 
     // TODO: better error
-    if (! $item)
+    if (!$item)
     {
-        pnSessionSetVar('errormsg', 'The set does not exist'); // TODO
-        pnRedirect(pnModURL('feproc', 'admin', 'view')); // TODO
-        return true;
+        pnSessionSetVar('errormsg', 'The set does not exist');
+        return pnRedirect(pnModURL('feproc', 'admin', 'view'));
     }
+
+    $render = FormUtil::newpnForm('feproc');
+    $formobj = new feproc_admin_editsetHandler();
+    $formobj->setId($setid);
+    return $render->pnFormExecute('feproc_admin_editset.tpl', $formobj);
+    
+    // Create output object.
+    $output = new pnHTML();
 
     // Add menu to output.
     $output->SetInputMode(_PNH_VERBATIMINPUT);
